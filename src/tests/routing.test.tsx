@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { routeConfig } from "@/app/routes";
 import { subjectRepository } from "@/repositories/subjectRepository";
+import { userProfileRepository } from "@/repositories/userProfileRepository";
 import { ThemeProvider } from "@/store/ThemeContext";
 
 function renderAt(path: string) {
@@ -18,11 +19,27 @@ function renderAt(path: string) {
 describe("routing", () => {
   beforeEach(async () => {
     await subjectRepository.clear();
+    await userProfileRepository.clear();
+    // AppShell, kurulumu tamamlanmış bir profil olmadan ana rotaları göstermiyor
+    // (Phase 1A); testler bu nedenle tamamlanmış bir profille çalışır.
+    const now = new Date().toISOString();
+    await userProfileRepository.add({
+      id: "test-profile",
+      name: "Test Kullanıcı",
+      examDate: null,
+      dailyStudyTargetMinutes: 180,
+      weeklyStudyDays: [],
+      preferredStudyHours: [],
+      targetRanking: null,
+      onboardingCompleted: true,
+      createdAt: now,
+      updatedAt: now,
+    });
   });
 
   it("ana sayfada Dashboard'u gösterir", async () => {
     renderAt("/");
-    expect(await screen.findByText(/Merhaba!/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Test Kullanıcı/)).toBeInTheDocument();
   });
 
   it("/plan yolunda Planlayıcı yer tutucusunu gösterir", async () => {

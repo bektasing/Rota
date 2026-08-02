@@ -1,4 +1,4 @@
-export type TopicStatus = "not_started" | "in_progress" | "completed";
+export type TopicStatus = "not_started" | "in_progress" | "completed" | "review_needed";
 export type TopicDifficulty = "easy" | "medium" | "hard";
 export type TopicPriority = "low" | "medium" | "high";
 

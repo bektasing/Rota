@@ -14,6 +14,26 @@ Rota ticari, çok kullanıcılı veya sosyal bir platform değildir. Tek bir ö�
 
 ---
 
+## Değişmez Teknik Karar: Backend Yok
+
+Rota hiçbir zaman backend kullanmayacaktır. Bu karar geri alınamaz ve tüm phase'lerde geçerlidir.
+
+Kesinlikle yapılmayacaklar:
+
+- Backend oluşturma.
+- API oluşturma.
+- Firebase kullanma.
+- Supabase kullanma.
+- Harici veritabanı kullanma.
+- Kullanıcı hesabı oluşturma.
+- Giriş veya kayıt sistemi ekleme.
+- Bulut senkronizasyonu ekleme.
+- Gelecekte backend eklenmesine yönelik gereksiz soyutlama oluşturma (örn. sahte API katmanı, adapter'lar, "ileride sunucuya taşınır" varsayımıyla yazılmış kod).
+
+Uygulama yalnızca tek bir kullanıcı için, tamamen yerel ve çevrimdışı çalışacaktır. Tüm veriler IndexedDB içinde tutulacaktır. Yedekleme JSON dışa/içe aktarma ile yapılacaktır (bkz. Bölüm 5 ve 7).
+
+---
+
 ## 2. Kullanıcı Profili
 
 Uygulamanın kullanıcısı:
@@ -1307,9 +1327,33 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 
 ## 21. Güncel Durum
 
-**Mevcut phase:** Phase 0  
+**Mevcut phase:** Phase 1B — Ders/Konu Yönetimi ve Planlayıcı  
 **Durum:** Tamamlandı  
-**Tamamlanan özellikler:**
+**Tamamlanan özellikler (Phase 1B):**
+- Dersler ekranı (`/daha-fazla/dersler`) artık gerçek IndexedDB verisiyle çalışıyor: TYT / AYT Sayısal / Özel dersler olarak gruplanmış liste, ders adı düzenleme, dersi aktif/pasif yapma, özel ders ekleme
+- Aynı isimli TYT/AYT dersleri artık ayırt ediliyor ("Matematik (TYT)" / "Matematik (AYT)" gibi) — Phase 1A'nın bilinen sorunu çözüldü
+- `Subject.examType` tipi geriye dönük uyumlu şekilde `"OZEL"` değeriyle genişletildi (özel/kullanıcı dersleri için); IndexedDB şeması veya object store değişmedi
+- Yeni konu ekranı (`/daha-fazla/dersler/:subjectId`): konu ekleme, adını düzenleme, silme (onaylı), durum değiştirme (Başlanmadı / Çalışılıyor / Tamamlandı / Tekrar gerekli)
+- `Topic.status` tipi geriye dönük uyumlu şekilde `"review_needed"` değeriyle genişletildi
+- Planlayıcı (`/plan`) artık çalışan bir görev yöneticisi: Günlük/Haftalık sekmeli görünüm, tarihte ileri/geri gitme, "Bugüne dön"
+- Görev formu (`TaskFormPanel`): başlık, ders, konu (derse göre filtrelenir), görev türü, tarih, saat, tahmini süre, soru hedefi, öncelik, not — temel doğrulamalı, mobilde alttan açılan panel
+- Görev işlemleri: ekleme, düzenleme, silme (onaylı), tamamlama/geri alma, yarına erteleme, kopyalama — hepsi `studyTaskRepository` üzerinden IndexedDB'ye yazıyor
+- Görev listeleme sıralaması: saat → öncelik → oluşturulma zamanı
+- Haftalık görünüm: yatay taşma yaratmayan, dikey 7 gün kartı; her kart görev sayısını ve tamamlanan sayısını gösteriyor, dokununca o günün günlük görünümüne geçiyor
+- Ana sayfa artık bugünün gerçek görevlerini gösteriyor: tamamlanan/toplam sayaç, ilk birkaç görev, görevi ana sayfadan tamamlama/geri alma, "Tümünü gör" bağlantısı — sahte veri yok, görev yoksa dürüst boş durum
+- Günlük hedef ilerleme çubuğu hâlâ bilinçli olarak 0 dk (StudySession henüz yok, sahte süre üretilmedi)
+- Yeni saf yardımcılar: `toDateKey`, `fromDateKey`, `addDays`, `startOfWeek`, `formatShortDayLabel` (`src/utils/date.ts`)
+- Yeni sabitler: `TASK_TYPE_OPTIONS`/`TASK_PRIORITY_OPTIONS` (`src/constants/taskTypes.ts`), `TOPIC_STATUS_OPTIONS` (`src/constants/topicStatus.ts`)
+
+**Tamamlanan özellikler (Phase 1A):**
+- 3 adımlı ilk kurulum sihirbazı (`/kurulum`): ad, YKS tarihi, günlük hedef, haftalık çalışma günü sayısı, dinlenme günü, TYT/AYT seviyesi, güçlü/zayıf dersler (isteğe bağlı)
+- `UserProfile` modeli genişletildi: `tytLevel`, `aytLevel`, `strongSubjectIds`, `weakSubjectIds` (opsiyonel alanlar, mevcut testlerle geriye dönük uyumlu)
+- `AppShell` artık profil kontrolü yapıyor: profil yoksa veya kurulum tamamlanmamışsa `/kurulum`'a yönlendiriyor; kurulum tamamlanmışsa `/kurulum`'a gidilirse ana sayfaya geri yönlendiriyor
+- Ana sayfa (`DashboardPage`) artık gerçek profil verisiyle çalışıyor: saate göre karşılama + isim, bugünün tarihi, YKS'ye kalan gün (sınav tarihi varsa), günlük hedef ilerleme çubuğu (dürüst 0 dk, sahte veri yok), görevler için dürüst boş durum, hızlı görev ekle (`/plan`) ve çalışmaya başla (`/calis`) kısayolları
+- Günün kişisel mesajı kartı: 15 sabit mesaj, takvim gününe göre deterministik seçim (Math.random yok), aynı gün içinde değişmiyor
+- Saf yardımcı fonksiyonlar: `daysUntilExam`, `getGreeting` (`src/utils/date.ts`), `getDailyMessage` (`src/utils/dailyMessage.ts`) — saat dilimi kaymasına karşı UTC normalize edilmiş tarih hesaplama
+
+**Tamamlanan özellikler (Phase 0):**
 - React + TypeScript + Vite kurulumu, Tailwind CSS 4, React Router 7, Lucide Icons, PWA (vite-plugin-pwa)
 - Tam klasör mimarisi (app, components, features, hooks, models, repositories, services, store, utils, constants, tests)
 - Mobil alt navigasyon (5 öğe) + masaüstü yan navigasyon, tüm route'lar arası geçiş çalışıyor
@@ -1322,13 +1366,18 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 - 29 Vitest testi (repository CRUD, backup doğrulama, bootstrap seed, routing) — hepsi geçiyor
 - TypeScript hatasız, production build başarılı, PWA manifest ve service worker üretim build'inde doğrulandı
 
-**Devam eden özellik:** Yok, Phase 0 kapandı  
+**Devam eden özellik:** Yok, Phase 1B kapandı  
 **Bilinen sorunlar:**
 - `npm audit`, react-router'ın RSC modundaki bir CSRF açığını raporluyor; Rota tamamen istemci taraflı olduğu ve RSC/server actions kullanmadığı için kapsam dışı, downgrade önerilmedi.
 - Geliştirme sırasında React StrictMode'un efektleri iki kez çalıştırması nedeniyle ders seed işleminde bir yarış durumu (race condition) bulundu ve düzeltildi (bkz. `src/services/bootstrapService.ts` — in-flight promise koruması). Bu tür idempotency kontrolleri ileride eklenecek diğer seed/bootstrap işlemlerinde de göz önünde bulundurulmalı.
 - JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama Phase 5'te bağlanacak.
+- Kurulum ekranındaki güçlü/zayıf ders seçimi hâlâ ders adını sınav türü etiketi olmadan gösteriyor (kozmetik, Phase 1A'dan kalan küçük bir tutarsızlık; Dersler ekranı artık etiketli).
+- Ayarlar ekranı hâlâ placeholder; kullanıcı profil bilgilerini kurulumdan sonra değiştiremiyor (bu phase kapsamı dışında bırakıldı, ileride eklenecek).
+- Konu silindiğinde, o konuya bağlı görevlerdeki `topicId` temizlenmiyor (kayıt bozulmuyor, sadece referans "yetim" kalabilir); görev formu/listesi konu adı bulunamazsa sorunsuz çalışır çünkü konu her zaman isteğe bağlıdır.
+- StudySession henüz yok; ana sayfadaki ve planlayıcıdaki "gerçek çalışma süresi" alanları (`actualMinutes`) hâlâ kullanılmıyor, günlük hedef çubuğu bilinçli olarak sabit 0 dk gösteriyor.
+- Native `window.confirm` onay dialogları bazı otomatik tarayıcı test ortamlarında senkron olarak otomatik kapanabiliyor; gerçek tarayıcılarda standart davranış sergiler, bu bir uygulama hatası değildir.
 
-**Sıradaki görev:** Phase 1 — İlk Kurulum, Ana Sayfa ve Planlayıcı
+**Sıradaki görev:** Phase 2 — Çalışma Sayacı ve Oturum Kaydı
 
 Claude her phase sonunda bu bölümü güncellemelidir.
 

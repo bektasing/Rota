@@ -1,4 +1,4 @@
-export type ExamType = "TYT" | "AYT";
+export type ExamType = "TYT" | "AYT" | "OZEL";
 
 export interface Subject {
   id: string;

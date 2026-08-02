@@ -10,15 +10,21 @@ import { GoalsPage } from "@/features/goals/pages/GoalsPage";
 import { MistakesPage } from "@/features/mistakes/pages/MistakesPage";
 import { MorePage } from "@/features/more/pages/MorePage";
 import { NotesPage } from "@/features/notes/pages/NotesPage";
+import { OnboardingPage } from "@/features/onboarding/pages/OnboardingPage";
 import { PlannerPage } from "@/features/planner/pages/PlannerPage";
 import { ResourcesPage } from "@/features/resources/pages/ResourcesPage";
 import { ReviewsPage } from "@/features/reviews/pages/ReviewsPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 import { StatisticsPage } from "@/features/statistics/pages/StatisticsPage";
 import { SubjectsPage } from "@/features/subjects/pages/SubjectsPage";
+import { TopicsPage } from "@/features/subjects/pages/TopicsPage";
 import { TimerPage } from "@/features/timer/pages/TimerPage";
 
 export const routeConfig: RouteObject[] = [
+  {
+    path: ROUTES.onboarding,
+    element: <OnboardingPage />,
+  },
   {
     path: ROUTES.home,
     element: <AppShell />,
@@ -29,6 +35,7 @@ export const routeConfig: RouteObject[] = [
       { path: ROUTES.progress.slice(1), element: <StatisticsPage /> },
       { path: ROUTES.more.slice(1), element: <MorePage /> },
       { path: ROUTES.moreSubjects.slice(1), element: <SubjectsPage /> },
+      { path: ROUTES.moreSubjectTopics.slice(1), element: <TopicsPage /> },
       { path: ROUTES.moreExams.slice(1), element: <ExamsPage /> },
       { path: ROUTES.moreMistakes.slice(1), element: <MistakesPage /> },
       { path: ROUTES.moreReviews.slice(1), element: <ReviewsPage /> },

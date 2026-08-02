@@ -1,10 +1,12 @@
 export const ROUTES = {
   home: "/",
+  onboarding: "/kurulum",
   planner: "/plan",
   timer: "/calis",
   progress: "/ilerleme",
   more: "/daha-fazla",
   moreSubjects: "/daha-fazla/dersler",
+  moreSubjectTopics: "/daha-fazla/dersler/:subjectId",
   moreExams: "/daha-fazla/denemeler",
   moreMistakes: "/daha-fazla/yanlislar",
   moreReviews: "/daha-fazla/tekrarlar",
