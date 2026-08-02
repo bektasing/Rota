@@ -1,0 +1,6 @@
+export { subjectRepository } from "@/repositories/subjectRepository";
+export { topicRepository } from "@/repositories/topicRepository";
+export { studyTaskRepository } from "@/repositories/studyTaskRepository";
+export { userProfileRepository } from "@/repositories/userProfileRepository";
+export { BaseRepository, type Identifiable } from "@/repositories/BaseRepository";
+export { DB_NAME, DB_VERSION, STORE_NAMES, getDb } from "@/repositories/db";

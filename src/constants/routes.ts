@@ -1,0 +1,16 @@
+export const ROUTES = {
+  home: "/",
+  planner: "/plan",
+  timer: "/calis",
+  progress: "/ilerleme",
+  more: "/daha-fazla",
+  moreSubjects: "/daha-fazla/dersler",
+  moreExams: "/daha-fazla/denemeler",
+  moreMistakes: "/daha-fazla/yanlislar",
+  moreReviews: "/daha-fazla/tekrarlar",
+  moreGoals: "/daha-fazla/hedefler",
+  moreResources: "/daha-fazla/kaynaklar",
+  moreNotes: "/daha-fazla/notlar",
+  moreDepartments: "/daha-fazla/bolum-kesfi",
+  moreSettings: "/daha-fazla/ayarlar",
+} as const;
