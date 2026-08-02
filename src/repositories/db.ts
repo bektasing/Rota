@@ -1,11 +1,12 @@
 export const DB_NAME = "rota-db";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export const STORE_NAMES = {
   userProfile: "userProfile",
   subjects: "subjects",
   topics: "topics",
   studyTasks: "studyTasks",
+  studySessions: "studySessions",
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -31,6 +32,12 @@ function createStores(db: IDBDatabase): void {
     const store = db.createObjectStore(STORE_NAMES.studyTasks, { keyPath: "id" });
     store.createIndex("date", "date");
     store.createIndex("subjectId", "subjectId");
+  }
+
+  if (!db.objectStoreNames.contains(STORE_NAMES.studySessions)) {
+    const store = db.createObjectStore(STORE_NAMES.studySessions, { keyPath: "id" });
+    store.createIndex("date", "date");
+    store.createIndex("taskId", "taskId");
   }
 }
 

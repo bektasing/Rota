@@ -34,10 +34,21 @@ Uygulama yalnızca tek bir kullanıcı için, tamamen yerel ve çevrimdışı ç
 
 ---
 
+## Değişmez Teknik Karar: Sabit Kullanıcı (Nisa)
+
+Rota yalnızca Nisa için geliştirilmiştir. Bu karar geri alınamaz.
+
+- Kullanıcı adı sabittir: **Nisa**. Onboarding ekranı hiçbir zaman isim sormaz.
+- Sınav tarihi sabittir: **19 Haziran 2027** (`2027-06-19`). Onboarding ekranı hiçbir zaman sınav tarihi sormaz.
+- Bu iki değer `src/constants/profile.ts` içinde merkezi olarak tutulur (`FIXED_USER_NAME`, `FIXED_EXAM_DATE`); componentler içine tekrar tekrar yazılmaz.
+- `userProfileRepository.getProfile()` profil yüklenirken bu değerleri otomatik doğrular: isim veya sınav tarihi farklıysa (örn. eski test verisi), diğer tüm tercihler (günlük hedef, seviyeler, güçlü/zayıf dersler vb.) korunarak sessizce sabit değerlere göçürülür. Yeni profil oluşturulmaz, mevcut profil güncellenir.
+- Ana sayfadaki karşılama her zaman Nisa adına göre çalışır.
+
 ## 2. Kullanıcı Profili
 
 Uygulamanın kullanıcısı:
 
+- Adı Nisa'dır, sabittir.
 - 12. sınıfı bitirmiştir.
 - Mezun senesinde YKS’ye hazırlanmaktadır.
 - Sayısal öğrencisidir.
@@ -421,10 +432,10 @@ Masaüstünde uygun bir yan menü kullanılabilir.
 
 İlk açılışta kısa bir kurulum ekranı gösterilmelidir.
 
+Kullanıcı adı (Nisa) ve sınav tarihi (19 Haziran 2027) sabittir; onboarding bunları hiçbir zaman sormaz (bkz. "Değişmez Teknik Karar: Sabit Kullanıcı (Nisa)").
+
 Zorunlu veya temel alanlar:
 
-- Kullanıcının adı
-- YKS sınav tarihi
 - Günlük çalışma hedefi
 - Haftalık çalışma günü
 - Dinlenme günü
@@ -1327,8 +1338,26 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 
 ## 21. Güncel Durum
 
-**Mevcut phase:** Phase 1B — Ders/Konu Yönetimi ve Planlayıcı  
+**Mevcut phase:** Sabit Nisa Profili düzeltmesi + Phase 2 — Çalışma Sayacı ve Oturum Kaydı  
 **Durum:** Tamamlandı  
+**Tamamlanan özellikler (Sabit Nisa Profili):**
+- Sabit kullanıcı: **Nisa**, sabit sınav tarihi: **19 Haziran 2027** (`2027-06-19`) — `src/constants/profile.ts` içinde merkezi olarak tutuluyor (bkz. "Değişmez Teknik Karar: Sabit Kullanıcı (Nisa)")
+- Onboarding artık isim ve sınav tarihi sormuyor; 3 adımdan 2 adıma indirildi (1: günlük hedef/haftalık gün/dinlenme günü, 2: TYT-AYT seviyesi/güçlü-zayıf dersler)
+- `userProfileRepository.getProfile()` otomatik göç mantığı: kayıtlı profilin adı "Nisa" veya sınav tarihi "2027-06-19" değilse (örn. eski test verisi "Ayşe"), diğer tüm tercihler (günlük hedef, seviyeler, güçlü/zayıf dersler, haftalık günler) korunarak sessizce sabit değerlere güncelleniyor; yeni profil oluşturulmuyor
+- Ana sayfa karşılaması ve kurulum başlığı her zaman Nisa'yı gösteriyor
+
+**Tamamlanan özellikler (Phase 2):**
+- `StudySession` modeli ve `studySessionRepository` eklendi (`mode`, `plannedMinutes`, `actualMinutes`, `actualSeconds`, `actualQuestions`, `taskId`/`subjectId`/`topicId`, `date` — yerel gün bazlı hızlı sorgu için)
+- IndexedDB `DB_VERSION` 1'den 2'ye güvenli şekilde artırıldı; yalnızca yeni `studySessions` object store'u eklendi, mevcut store'lara veya verilere dokunulmadı
+- `/calis` artık çalışan bir çalışma sayacı ekranı: Serbest sayaç (yukarı sayar) ve Süreli çalışma (varsayılan 25 dk, geri sayar, süre bitince "Süre tamamlandı" mesajı gösterir, saymaya devam eder)
+- Oturum başlamadan önce isteğe bağlı seçim: bugünün tamamlanmamış görevlerinden biri (seçilince ders/konu otomatik dolduruluyor), ders (yalnızca aktif dersler listelenir), konu (seçilen derse göre filtrelenir), planlanan süre, oturum notu
+- Sayaç işlemleri: başlat, duraklat, devam et, bitir (özet paneliyle onaylanır), iptal et (onaylı, kayıt oluşturmaz) — aynı anda yalnızca bir aktif oturum olabiliyor
+- Aktif sayaç kalıcılığı: `localStorage`'da zaman damgası tabanlı durum (`startedAt`, `accumulatedPausedMs`, `pausedSinceAt`, `status`) — sayfa yenilendiğinde veya sekme değiştirildiğinde gerçek süre timestamp'lerden yeniden hesaplanıyor, kaymıyor; saniyede bir IndexedDB'ye yazılmıyor
+- Oturum bitirildiğinde: `studySessionRepository`'ye kaydediliyor; bağlı görev varsa `actualMinutes`/`actualQuestions` değerleri göreve ekleniyor (görev otomatik tamamlanmıyor, kullanıcı kendisi tamamlar); tek bir oturum yalnızca bir kez kaydedilebiliyor (aktif sayaç kaydedilir kaydedilmez temizleniyor)
+- Ana sayfa artık bugünkü gerçek toplam çalışma süresini (`studySessionRepository.getByDate`) gösteriyor; oturum yoksa dürüst 0 dk, sahte süre üretilmiyor; hedef aşılsa bile gerçek dakika sayısı yazılıyor (ilerleme çubuğu görsel olarak %100'de sınırlanıyor)
+- Çalış ekranında bugünün tamamlanan oturumları listeleniyor (ders adı, süre, not) ve bugünkü toplam süre gösteriliyor; oturum yoksa dürüst boş durum
+- Yeni yardımcılar: `computeElapsedMs`, `formatDuration`, `sumSessionMinutes`, `loadActiveTimer`/`saveActiveTimer`/`clearActiveTimer` (`src/utils/timer.ts`)
+
 **Tamamlanan özellikler (Phase 1B):**
 - Dersler ekranı (`/daha-fazla/dersler`) artık gerçek IndexedDB verisiyle çalışıyor: TYT / AYT Sayısal / Özel dersler olarak gruplanmış liste, ders adı düzenleme, dersi aktif/pasif yapma, özel ders ekleme
 - Aynı isimli TYT/AYT dersleri artık ayırt ediliyor ("Matematik (TYT)" / "Matematik (AYT)" gibi) — Phase 1A'nın bilinen sorunu çözüldü
@@ -1366,18 +1395,17 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 - 29 Vitest testi (repository CRUD, backup doğrulama, bootstrap seed, routing) — hepsi geçiyor
 - TypeScript hatasız, production build başarılı, PWA manifest ve service worker üretim build'inde doğrulandı
 
-**Devam eden özellik:** Yok, Phase 1B kapandı  
+**Devam eden özellik:** Yok, bu görev kapandı  
 **Bilinen sorunlar:**
 - `npm audit`, react-router'ın RSC modundaki bir CSRF açığını raporluyor; Rota tamamen istemci taraflı olduğu ve RSC/server actions kullanmadığı için kapsam dışı, downgrade önerilmedi.
 - Geliştirme sırasında React StrictMode'un efektleri iki kez çalıştırması nedeniyle ders seed işleminde bir yarış durumu (race condition) bulundu ve düzeltildi (bkz. `src/services/bootstrapService.ts` — in-flight promise koruması). Bu tür idempotency kontrolleri ileride eklenecek diğer seed/bootstrap işlemlerinde de göz önünde bulundurulmalı.
-- JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama Phase 5'te bağlanacak.
-- Kurulum ekranındaki güçlü/zayıf ders seçimi hâlâ ders adını sınav türü etiketi olmadan gösteriyor (kozmetik, Phase 1A'dan kalan küçük bir tutarsızlık; Dersler ekranı artık etiketli).
-- Ayarlar ekranı hâlâ placeholder; kullanıcı profil bilgilerini kurulumdan sonra değiştiremiyor (bu phase kapsamı dışında bırakıldı, ileride eklenecek).
-- Konu silindiğinde, o konuya bağlı görevlerdeki `topicId` temizlenmiyor (kayıt bozulmuyor, sadece referans "yetim" kalabilir); görev formu/listesi konu adı bulunamazsa sorunsuz çalışır çünkü konu her zaman isteğe bağlıdır.
-- StudySession henüz yok; ana sayfadaki ve planlayıcıdaki "gerçek çalışma süresi" alanları (`actualMinutes`) hâlâ kullanılmıyor, günlük hedef çubuğu bilinçli olarak sabit 0 dk gösteriyor.
+- JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama `StudySession` backup şemasına henüz eklenmedi ve Phase 5'te bağlanacak.
+- Ayarlar ekranı hâlâ placeholder; kullanıcı diğer tercihlerini (günlük hedef, seviyeler vb.) kurulumdan sonra değiştiremiyor (bu görev kapsamı dışında bırakıldı, ileride eklenecek).
+- Konu silindiğinde, o konuya bağlı görevlerdeki/oturumlardaki `topicId` temizlenmiyor (kayıt bozulmuyor, sadece referans "yetim" kalabilir); her iki model de konuyu her zaman isteğe bağlı tuttuğu için görünümde soruna yol açmıyor.
 - Native `window.confirm` onay dialogları bazı otomatik tarayıcı test ortamlarında senkron olarak otomatik kapanabiliyor; gerçek tarayıcılarda standart davranış sergiler, bu bir uygulama hatası değildir.
+- Süreli çalışma modunda hedef süre dolduktan sonra sayaç otomatik durmuyor, kullanıcı elle "Bitir" demeli (bilinçli tasarım — otomatik mola/durdurma zinciri kapsam dışı bırakıldı).
 
-**Sıradaki görev:** Phase 2 — Çalışma Sayacı ve Oturum Kaydı
+**Sıradaki görev:** Phase 3 — Denemeler, Yanlışlar ve Tekrarlar
 
 Claude her phase sonunda bu bölümü güncellemelidir.
 

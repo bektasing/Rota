@@ -25,8 +25,8 @@ describe("routing", () => {
     const now = new Date().toISOString();
     await userProfileRepository.add({
       id: "test-profile",
-      name: "Test Kullanıcı",
-      examDate: null,
+      name: "Nisa",
+      examDate: "2027-06-19",
       dailyStudyTargetMinutes: 180,
       weeklyStudyDays: [],
       preferredStudyHours: [],
@@ -39,7 +39,7 @@ describe("routing", () => {
 
   it("ana sayfada Dashboard'u gösterir", async () => {
     renderAt("/");
-    expect(await screen.findByText(/Test Kullanıcı/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nisa/)).toBeInTheDocument();
   });
 
   it("/plan yolunda Planlayıcı yer tutucusunu gösterir", async () => {

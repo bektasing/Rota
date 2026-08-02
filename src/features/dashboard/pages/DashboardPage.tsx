@@ -6,11 +6,14 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ROUTES } from "@/constants/routes";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import type { StudySession } from "@/models/StudySession";
 import type { StudyTask } from "@/models/StudyTask";
+import { studySessionRepository } from "@/repositories/studySessionRepository";
 import { studyTaskRepository } from "@/repositories/studyTaskRepository";
 import { getDailyMessage } from "@/utils/dailyMessage";
 import { cx } from "@/utils/cx";
 import { daysUntilExam, formatFriendlyDate, getGreeting, toDateKey } from "@/utils/date";
+import { sumSessionMinutes } from "@/utils/timer";
 
 const VISIBLE_TASK_COUNT = 4;
 
@@ -18,14 +21,21 @@ export function DashboardPage() {
   const { profile, loading } = useUserProfile();
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [sessions, setSessions] = useState<StudySession[]>([]);
 
   async function reloadTasks() {
     const todaysTasks = await studyTaskRepository.getByDate(toDateKey(new Date()));
     setTasks(todaysTasks);
   }
 
+  async function reloadSessions() {
+    const todaysSessions = await studySessionRepository.getByDate(toDateKey(new Date()));
+    setSessions(todaysSessions);
+  }
+
   useEffect(() => {
     reloadTasks().finally(() => setTasksLoading(false));
+    reloadSessions();
   }, []);
 
   async function toggleComplete(task: StudyTask) {
@@ -48,7 +58,7 @@ export function DashboardPage() {
   const today = new Date();
   const remainingDays = daysUntilExam(profile.examDate, today);
   const dailyTarget = profile.dailyStudyTargetMinutes;
-  const studiedMinutesToday = 0;
+  const studiedMinutesToday = sumSessionMinutes(sessions);
   const progressPercent = dailyTarget > 0 ? Math.min(100, Math.round((studiedMinutesToday / dailyTarget) * 100)) : 0;
   const completedCount = tasks.filter((t) => t.completed).length;
   const visibleTasks = tasks.slice(0, VISIBLE_TASK_COUNT);

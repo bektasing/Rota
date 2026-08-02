@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import { Card } from "@/components/ui/Card";
 import { WEEK_DAYS } from "@/constants/weekDays";
+import { FIXED_EXAM_DATE, FIXED_USER_NAME } from "@/constants/profile";
 import { ROUTES } from "@/constants/routes";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { StudyLevel, UserProfile, WeekDay } from "@/models/UserProfile";
@@ -22,8 +23,6 @@ const LEVEL_OPTIONS: { value: StudyLevel; label: string }[] = [
 ];
 
 interface FormState {
-  name: string;
-  examDate: string;
   dailyStudyTargetMinutes: number;
   studyDaysPerWeek: number;
   restDay: WeekDay;
@@ -34,8 +33,6 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
-  name: "",
-  examDate: "",
   dailyStudyTargetMinutes: 180,
   studyDaysPerWeek: 5,
   restDay: "sunday",
@@ -57,7 +54,7 @@ function toggleId(ids: string[], id: string): string[] {
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { profile, loading } = useUserProfile();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [saving, setSaving] = useState(false);
@@ -70,7 +67,6 @@ export function OnboardingPage() {
     return <Navigate to={ROUTES.home} replace />;
   }
 
-  const nameValid = form.name.trim().length > 0;
   const targetValid = form.dailyStudyTargetMinutes > 0;
 
   async function handleComplete() {
@@ -78,8 +74,8 @@ export function OnboardingPage() {
     const now = new Date().toISOString();
     const newProfile: UserProfile = {
       id: generateId(),
-      name: form.name.trim(),
-      examDate: form.examDate || null,
+      name: FIXED_USER_NAME,
+      examDate: FIXED_EXAM_DATE,
       dailyStudyTargetMinutes: form.dailyStudyTargetMinutes,
       weeklyStudyDays: computeWeeklyStudyDays(form.studyDaysPerWeek, form.restDay),
       preferredStudyHours: [],
@@ -103,41 +99,12 @@ export function OnboardingPage() {
         <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
           R
         </div>
-        <h1 className="text-lg font-semibold text-foreground">Rota'ya hoş geldin</h1>
-        <p className="text-sm text-muted-foreground">Adım {step}/3 — birkaç kısa soru yeterli</p>
+        <h1 className="text-lg font-semibold text-foreground">Rota'ya hoş geldin, Nisa</h1>
+        <p className="text-sm text-muted-foreground">Adım {step}/2 — birkaç kısa soru yeterli</p>
       </div>
 
       <Card className="flex flex-col gap-4">
         {step === 1 && (
-          <>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="name" className="text-sm font-medium text-foreground">
-                Adın nedir?
-              </label>
-              <input
-                id="name"
-                className={INPUT_CLASS}
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Adını yaz"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="examDate" className="text-sm font-medium text-foreground">
-                YKS sınav tarihin (istersen atla)
-              </label>
-              <input
-                id="examDate"
-                type="date"
-                className={INPUT_CLASS}
-                value={form.examDate}
-                onChange={(e) => setForm((f) => ({ ...f, examDate: e.target.value }))}
-              />
-            </div>
-          </>
-        )}
-
-        {step === 2 && (
           <>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="dailyTarget" className="text-sm font-medium text-foreground">
@@ -191,7 +158,7 @@ export function OnboardingPage() {
           </>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <>
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-foreground">TYT seviyen</span>
@@ -301,7 +268,7 @@ export function OnboardingPage() {
           {step > 1 ? (
             <button
               type="button"
-              onClick={() => setStep((s) => (s === 3 ? 2 : 1))}
+              onClick={() => setStep(1)}
               className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Geri
@@ -310,18 +277,18 @@ export function OnboardingPage() {
             <span />
           )}
 
-          {step < 3 && (
+          {step === 1 && (
             <button
               type="button"
-              disabled={step === 1 ? !nameValid : !targetValid}
-              onClick={() => setStep((s) => (s === 1 ? 2 : 3))}
+              disabled={!targetValid}
+              onClick={() => setStep(2)}
               className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               İleri
             </button>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <button
               type="button"
               disabled={saving}

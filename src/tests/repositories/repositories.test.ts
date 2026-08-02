@@ -105,7 +105,8 @@ describe("userProfileRepository", () => {
 
     await userProfileRepository.saveProfile(profile);
 
+    // userProfileRepository.getProfile() Rota'nın sabit kullanıcısına (Nisa) göçürür.
     const found = await userProfileRepository.getProfile();
-    expect(found?.name).toBe("Öğrenci");
+    expect(found?.name).toBe("Nisa");
   });
 });
