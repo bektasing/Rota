@@ -28,7 +28,9 @@ export function SegmentedControl<T extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cx(
-        "inline-flex w-full max-w-md items-center gap-1 rounded-full border border-border bg-surface-muted p-1",
+        // Seçenekler sığmazsa sayfayı yatay kaydırmak yerine kontrolün kendi içinde kayar.
+        "inline-flex w-full max-w-md items-center gap-1 overflow-x-auto rounded-full border border-border bg-surface-muted p-1",
+        "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
@@ -42,7 +44,7 @@ export function SegmentedControl<T extends string>({
             aria-selected={active}
             onClick={() => onChange(option.value)}
             className={cx(
-              "press flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[13px] font-semibold",
+              "press flex min-h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-semibold",
               active
                 ? "bg-surface text-foreground shadow-soft"
                 : "text-muted-foreground hover:text-foreground",

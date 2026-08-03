@@ -1338,8 +1338,23 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 
 ## 21. Güncel Durum
 
-**Mevcut phase:** Arayüz Yenilemesi ve Ayarlar (Phase 3 ile Phase 4 arası ara görev)  
+**Mevcut phase:** Phase 4 — Hedefler, Kaynaklar, Notlar ve İstatistikler  
 **Durum:** Tamamlandı  
+**Tamamlanan özellikler (Phase 4):**
+- `Goal` modeli ve `goalRepository`: 7 hedef türü (çalışma süresi, soru, görev, deneme, net, konu tamamlama, özel), 7 birim (dakika/soru/görev/deneme/net/konu/adet), 3 durum (aktif/tamamlandı/duraklatıldı), isteğe bağlı açıklama ve ders bağlantısı, tarih aralığı
+- `StudyResource` modeli ve `studyResourceRepository`: 8 kaynak türü, 4 durum (kullanılacak/devam ediyor/tamamlandı/bırakıldı), isteğe bağlı toplam ünite, tamamlanan ünite, 1–5 puan, not
+- `StudyNote` modeli ve `studyNoteRepository`: başlık, düz metin içerik, isteğe bağlı ders/konu, sabitleme
+- IndexedDB `DB_VERSION` 3'ten 4'e güvenli şekilde artırıldı; yalnızca `goals`, `studyResources`, `studyNotes` store'ları eklendi (mevcut store'lar ve veriler korundu — tarayıcıda mevcut 15 ders ve görev kaydıyla doğrulandı)
+- `/daha-fazla/hedefler`: hedef ekleme, düzenleme, silme (onaylı), tamamlama/geri alma, duraklatma/devam ettirme, ilerlemeyi kart içinden manuel güncelleme; kartta başlık, tür, tarih aralığı, mevcut/hedef değeri, yüzde, ilerleme çubuğu ve durum rozeti; hedef değeri sıfır/negatif olamıyor, yüzde `computePercent` ile 0–100 arasında güvenli sınırlanıyor (`src/utils/progress.ts`). Bu phase'te hedefler bilinçli olarak otomatik ilerletilmiyor, manuel takip yeterli.
+- `/daha-fazla/kaynaklar`: kaynak ekleme, düzenleme, silme (onaylı), durum değiştirme, ilerlemeyi kart içinden güncelleme, 1–5 yıldız puan; toplam ünite girilmişse yüzde + ilerleme çubuğu, girilmemişse yalnızca tamamlanan miktar. Dosya yükleme/URL önizlemesi yok.
+- `/daha-fazla/notlar`: not ekleme, düzenleme, silme (onaylı), sabitleme/sabitlemeyi kaldırma, başlık+içerikte arama (Türkçe küçük harf duyarlı), ders filtresi; sabitlenenler listenin başında, ardından en son güncellenenler; kartta 180 karakterlik önizleme. Zengin metin/markdown editörü bilinçli olarak yok, düz textarea.
+- `/ilerleme` artık gerçek istatistik ekranı (`src/services/statisticsService.ts` saf fonksiyonlarıyla, yeni store yok): Son 7 gün / Son 30 gün / Tümü aralığı, yerel gün anahtarına göre filtreleme (UTC kayması yok)
+- Metrikler: toplam çalışma süresi, günlük ortalama, oturum sayısı, çözülen soru, tamamlanan görev + tamamlama oranı, deneme sayısı, son deneme neti, açık yanlış, tamamlanan tekrar, aktif/tamamlanan hedef, devam eden kaynak — hepsi mevcut repository'lerden, veri yoksa dürüst 0/boş durum
+- Görseller harici kütüphane olmadan: günlük çalışma süreleri için saf CSS sütun grafiği (7/30 gün), deneme netleri için saf SVG çizgi, derslere göre toplam süre için yatay ilerleme çubukları — hepsi veri yokken boş durum gösteriyor
+- Ana sayfaya küçük bir "Aktif hedef" kartı eklendi: bitişi en yakın aktif hedef, mevcut/hedef değeri, yüzde, ilerleme çubuğu ve "Tüm hedefleri gör" bağlantısı; aktif hedef yoksa kısa dürüst boş durum. Mevcut bölümler (günlük ilerleme, görevler, çalışma süresi, tekrarlar, son deneme, günün mesajı) değişmedi.
+- JSON yedekleme geriye uyumlu şekilde genişletildi: `RotaBackupData` artık `goals`/`studyResources`/`studyNotes` içeriyor; doğrulama bu alanları eksik olan eski yedekleri geçersiz saymıyor, boş dizi kabul ediyor (`readOptionalCollection`). Yedekleme arayüzü hâlâ Ayarlar'a bağlı değil (Phase 5).
+- `SegmentedControl` artık seçenekler sığmazsa sayfayı yatay kaydırmak yerine kendi içinde kayıyor (4–5 seçenekli filtreler 375 px'te taşma yaratmıyor)
+
 **Tamamlanan özellikler (Arayüz Yenilemesi ve Ayarlar):**
 - `/daha-fazla/ayarlar` artık gerçek bir Ayarlar sayfası: günlük çalışma hedefi değiştirilebiliyor (60/120/180/240/300 dk hazır seçenekleri + özel değer), 15–720 dk arası tam sayı doğrulaması, "Kaydet" sonrası kısa "Günlük hedefin güncellendi." geri bildirimi
 - Hedef `UserProfile.dailyStudyTargetMinutes` alanına `userProfileRepository.saveProfile` ile yazılıyor; diğer profil tercihleri (haftalık günler, seviyeler, güçlü/zayıf dersler) korunuyor, component doğrudan IndexedDB'ye erişmiyor; ana sayfadaki hedef/ilerleme yeni değeri gösteriyor (tarayıcıda 180 → 240 doğrulandı)
@@ -1425,7 +1440,11 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 **Bilinen sorunlar:**
 - `npm audit`, react-router'ın RSC modundaki bir CSRF açığını raporluyor; Rota tamamen istemci taraflı olduğu ve RSC/server actions kullanmadığı için kapsam dışı, downgrade önerilmedi.
 - Geliştirme sırasında React StrictMode'un efektleri iki kez çalıştırması nedeniyle ders seed işleminde bir yarış durumu (race condition) bulundu ve düzeltildi (bkz. `src/services/bootstrapService.ts` — in-flight promise koruması). Bu tür idempotency kontrolleri ileride eklenecek diğer seed/bootstrap işlemlerinde de göz önünde bulundurulmalı.
-- JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama `StudySession` backup şemasına henüz eklenmedi ve Phase 5'te bağlanacak.
+- JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama `StudySession`, `ExamResult`, `MistakeRecord` ve `ReviewItem` backup şemasına henüz eklenmedi (Phase 4'te yalnızca `Goal`/`StudyResource`/`StudyNote` eklendi) ve Phase 5'te bağlanacak.
+- Hedefler bu phase'te çalışma kayıtlarından otomatik ilerletilmiyor; ilerleme değeri kullanıcı tarafından manuel güncelleniyor (brief'te zorunlu tutulmadı).
+- İstatistiklerdeki "aktif hedef" ve "tamamlanan hedef" sayıları tarih aralığından bağımsızdır (tüm hedefler sayılır); diğer tüm metrikler seçilen aralığa göre hesaplanır.
+- "Tümü" aralığı seçiliyken günlük çalışma sütun grafiği son 30 günü gösterir (başlıkta belirtilir); tüm geçmişi tek grafikte çizmek mobilde okunaksız olurdu.
+- Ders veya konu silindiğinde kaynak/not/hedef kayıtlarındaki `subjectId`/`topicId` temizlenmiyor (mevcut yetim referans kısıtlamasıyla aynı; kart üzerinde "Ders silinmiş" düşmesi dışında soruna yol açmıyor).
 - Ayarlar ekranından şimdilik yalnızca günlük çalışma hedefi ve tema değiştirilebiliyor; haftalık çalışma günleri, dinlenme günü, TYT/AYT seviyesi ve güçlü/zayıf ders tercihleri kurulumdan sonra hâlâ değiştirilemiyor (bilinçli kapsam sınırı).
 - Konu silindiğinde, o konuya bağlı görevlerdeki/oturumlardaki `topicId` temizlenmiyor (kayıt bozulmuyor, sadece referans "yetim" kalabilir); her iki model de konuyu her zaman isteğe bağlı tuttuğu için görünümde soruna yol açmıyor.
 - Native `window.confirm` onay dialogları bazı otomatik tarayıcı test ortamlarında senkron olarak otomatik kapanabiliyor; gerçek tarayıcılarda standart davranış sergiler, bu bir uygulama hatası değildir.
@@ -1437,7 +1456,7 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 - Dashboard bento düzeninde aynı satırdaki kartlar eşit yükseklikte olduğu için, görev listesi boşken "Bugünün görevleri" kartı yanındaki metrik kartı kadar uzun görünebiliyor (görsel, işlevsel değil).
 - Ayarlar sayfası günlük hedefi kendi yerel state'inde tutuyor; ana sayfa değeri kendi `useUserProfile` çağrısıyla yeniden okuyor. Aynı anda iki sekme açıksa diğer sekme yenilenene kadar eski hedefi gösterebilir (tek kullanıcılı yerel uygulamada kabul edilebilir).
 
-**Sıradaki görev:** Phase 4 — Hedefler, Kaynaklar, Notlar ve Temel İstatistikler
+**Sıradaki görev:** Phase 5 — Ayarlar, Yedekleme, Bölüm Keşfi ve Son QA
 
 Claude her phase sonunda bu bölümü güncellemelidir.
 

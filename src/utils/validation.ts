@@ -33,7 +33,7 @@ export function validateBackup(raw: unknown): BackupValidationResult {
     return { valid: false, error: "Yedek dosyasında veri alanı eksik." };
   }
 
-  const { userProfile, subjects, topics, studyTasks } = raw.data;
+  const { userProfile, subjects, topics, studyTasks, goals, studyResources, studyNotes } = raw.data;
 
   if (userProfile !== null && userProfile !== undefined && !hasValidId(userProfile)) {
     return { valid: false, error: "Kullanıcı profili verisi bozuk." };
@@ -51,6 +51,16 @@ export function validateBackup(raw: unknown): BackupValidationResult {
     return { valid: false, error: "Görev listesi bozuk." };
   }
 
+  // Phase 4 koleksiyonları eski yedeklerde bulunmaz; eksik olmaları dosyayı geçersiz kılmaz.
+  const goalsResult = readOptionalCollection(goals, "Hedef listesi bozuk.");
+  if (!goalsResult.ok) return { valid: false, error: goalsResult.error };
+
+  const resourcesResult = readOptionalCollection(studyResources, "Kaynak listesi bozuk.");
+  if (!resourcesResult.ok) return { valid: false, error: resourcesResult.error };
+
+  const notesResult = readOptionalCollection(studyNotes, "Not listesi bozuk.");
+  if (!notesResult.ok) return { valid: false, error: notesResult.error };
+
   return {
     valid: true,
     data: {
@@ -61,7 +71,27 @@ export function validateBackup(raw: unknown): BackupValidationResult {
         subjects: subjects as RotaBackup["data"]["subjects"],
         topics: topics as RotaBackup["data"]["topics"],
         studyTasks: studyTasks as RotaBackup["data"]["studyTasks"],
+        goals: goalsResult.items as RotaBackup["data"]["goals"],
+        studyResources: resourcesResult.items as RotaBackup["data"]["studyResources"],
+        studyNotes: notesResult.items as RotaBackup["data"]["studyNotes"],
       },
     },
   };
+}
+
+type OptionalCollectionResult =
+  | { ok: true; items: { id: string }[] }
+  | { ok: false; error: string };
+
+/** Yedekte bulunmayan (sonradan eklenmiş) bir koleksiyonu boş dizi kabul eder. */
+function readOptionalCollection(value: unknown, errorMessage: string): OptionalCollectionResult {
+  if (value === undefined || value === null) {
+    return { ok: true, items: [] };
+  }
+
+  if (!Array.isArray(value) || !value.every(hasValidId)) {
+    return { ok: false, error: errorMessage };
+  }
+
+  return { ok: true, items: value };
 }

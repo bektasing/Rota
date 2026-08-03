@@ -1,5 +1,5 @@
 export const DB_NAME = "rota-db";
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export const STORE_NAMES = {
   userProfile: "userProfile",
@@ -10,6 +10,9 @@ export const STORE_NAMES = {
   examResults: "examResults",
   mistakeRecords: "mistakeRecords",
   reviewItems: "reviewItems",
+  goals: "goals",
+  studyResources: "studyResources",
+  studyNotes: "studyNotes",
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -59,6 +62,23 @@ function createStores(db: IDBDatabase): void {
     store.createIndex("mistakeId", "mistakeId");
     store.createIndex("scheduledDate", "scheduledDate");
     store.createIndex("status", "status");
+  }
+
+  if (!db.objectStoreNames.contains(STORE_NAMES.goals)) {
+    const store = db.createObjectStore(STORE_NAMES.goals, { keyPath: "id" });
+    store.createIndex("status", "status");
+    store.createIndex("endDate", "endDate");
+  }
+
+  if (!db.objectStoreNames.contains(STORE_NAMES.studyResources)) {
+    const store = db.createObjectStore(STORE_NAMES.studyResources, { keyPath: "id" });
+    store.createIndex("status", "status");
+    store.createIndex("subjectId", "subjectId");
+  }
+
+  if (!db.objectStoreNames.contains(STORE_NAMES.studyNotes)) {
+    const store = db.createObjectStore(STORE_NAMES.studyNotes, { keyPath: "id" });
+    store.createIndex("subjectId", "subjectId");
   }
 }
 

@@ -7,6 +7,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  Target,
   Timer as TimerIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -20,23 +21,27 @@ import { REVIEW_STAGE_LABELS } from "@/constants/review";
 import { ROUTES } from "@/constants/routes";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { ExamResult } from "@/models/ExamResult";
+import type { Goal } from "@/models/Goal";
 import type { ReviewItem } from "@/models/ReviewItem";
 import type { StudySession } from "@/models/StudySession";
 import type { StudyTask } from "@/models/StudyTask";
 import { examResultRepository } from "@/repositories/examResultRepository";
+import { goalRepository } from "@/repositories/goalRepository";
 import { reviewItemRepository } from "@/repositories/reviewItemRepository";
 import { studySessionRepository } from "@/repositories/studySessionRepository";
 import { studyTaskRepository } from "@/repositories/studyTaskRepository";
 import { completeReviewItem } from "@/services/reviewService";
 import { getDailyMessage } from "@/utils/dailyMessage";
 import { cx } from "@/utils/cx";
-import { daysUntilExam, formatFriendlyDate, getGreeting, toDateKey } from "@/utils/date";
+import { daysUntilExam, formatFriendlyDate, fromDateKey, getGreeting, toDateKey } from "@/utils/date";
 import { formatNet } from "@/utils/exam";
+import { computePercent, formatAmount } from "@/utils/progress";
 import { sumSessionMinutes } from "@/utils/timer";
 
 const VISIBLE_TASK_COUNT = 4;
 const VISIBLE_REVIEW_COUNT = 3;
 const EXAM_SUMMARY_DATE_FORMATTER = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" });
+const GOAL_DEADLINE_FORMATTER = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" });
 
 export function DashboardPage() {
   const { profile, loading } = useUserProfile();
@@ -45,6 +50,7 @@ export function DashboardPage() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [lastExam, setLastExam] = useState<ExamResult | null>(null);
+  const [nextGoal, setNextGoal] = useState<Goal | null>(null);
 
   async function reloadTasks() {
     const todaysTasks = await studyTaskRepository.getByDate(toDateKey(new Date()));
@@ -67,11 +73,21 @@ export function DashboardPage() {
     setLastExam(sorted[0] ?? null);
   }
 
+  /** Bitişi en yakın olan aktif hedefi gösteriyoruz. */
+  async function reloadNextGoal() {
+    const all = await goalRepository.getAll();
+    const active = all
+      .filter((goal) => goal.status === "active")
+      .sort((a, b) => a.endDate.localeCompare(b.endDate) || a.createdAt.localeCompare(b.createdAt));
+    setNextGoal(active[0] ?? null);
+  }
+
   useEffect(() => {
     reloadTasks().finally(() => setTasksLoading(false));
     reloadSessions();
     reloadReviews();
     reloadLastExam();
+    reloadNextGoal();
   }, []);
 
   async function completeReview(item: ReviewItem) {
@@ -330,6 +346,54 @@ export function DashboardPage() {
               >
                 Deneme ekle
               </Link>
+            </div>
+          )}
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] font-medium text-muted-foreground">Aktif hedef</span>
+            <Link to={ROUTES.moreGoals} className="text-[13px] font-semibold text-primary hover:underline">
+              Tüm hedefleri gör
+            </Link>
+          </div>
+
+          {nextGoal ? (
+            <>
+              <div>
+                <p className="truncate text-sm font-semibold text-foreground">{nextGoal.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  Son tarih {GOAL_DEADLINE_FORMATTER.format(fromDateKey(nextGoal.endDate))}
+                </p>
+              </div>
+              <div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="text-xl font-bold tabular-nums text-foreground">
+                      {formatAmount(nextGoal.currentValue)}
+                    </span>{" "}
+                    / {formatAmount(nextGoal.targetValue)} {nextGoal.unit}
+                  </p>
+                  <span className="text-[13px] font-bold tabular-nums text-primary">
+                    %{computePercent(nextGoal.currentValue, nextGoal.targetValue)}
+                  </span>
+                </div>
+                <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-surface-muted">
+                  <div
+                    className="bg-brand-gradient h-full rounded-full transition-[width] duration-500"
+                    style={{ width: `${computePercent(nextGoal.currentValue, nextGoal.targetValue)}%` }}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col justify-center gap-1">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <Target className="h-4 w-4" aria-hidden />
+              </span>
+              <p className="text-[13px] text-muted-foreground">
+                Aktif hedefin yok. Küçük bir hedef belirleyerek başlayabilirsin.
+              </p>
             </div>
           )}
         </Card>
