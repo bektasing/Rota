@@ -45,3 +45,17 @@ export const MORE_NAV_ITEMS: NavItem[] = [
   { label: "Bölüm Keşfi", path: ROUTES.moreDepartments, icon: Compass },
   { label: "Ayarlar", path: ROUTES.moreSettings, icon: Settings },
 ];
+
+/**
+ * Üst çubukta gösterilecek başlığı yola göre bulur.
+ * En uzun eşleşen yol kazanır (örn. `/daha-fazla/dersler/abc` → "Dersler ve Konular").
+ */
+export function findNavTitle(pathname: string): string {
+  if (pathname === ROUTES.home) return "Ana Sayfa";
+
+  const match = [...MAIN_NAV_ITEMS, ...MORE_NAV_ITEMS]
+    .filter((item) => item.path !== ROUTES.home && pathname.startsWith(item.path))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+
+  return match?.label ?? "Rota";
+}

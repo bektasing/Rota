@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
-import { Pause, Play, Square, Timer as TimerIcon, X } from "lucide-react";
+import { Pause, Play, Square, Timer as TimerIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FormSheet } from "@/components/ui/FormSheet";
+import { FIELD_CLASS, INPUT_CLASS, LABEL_CLASS } from "@/components/ui/formStyles";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { DEFAULT_COUNTDOWN_MINUTES } from "@/constants/timer";
 import { useSubjects } from "@/hooks/useSubjects";
 import type { StudySession, StudySessionMode } from "@/models/StudySession";
@@ -24,11 +29,8 @@ import {
   type ActiveTimerState,
 } from "@/utils/timer";
 
-const INPUT_CLASS =
-  "w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
-const LABEL_CLASS = "text-sm font-medium text-foreground";
-const BIG_BUTTON_CLASS =
-  "flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-opacity hover:opacity-90 active:scale-95";
+const CHIP_CLASS =
+  "rounded-full border border-border bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground";
 
 interface SetupForm {
   mode: StudySessionMode;
@@ -263,333 +265,308 @@ export function TimerPage() {
   const remainingSeconds = activeTimer?.mode === "countdown" ? Math.max(0, targetSeconds - elapsedSeconds) : null;
   const countdownDone = activeTimer?.mode === "countdown" && targetSeconds > 0 && elapsedSeconds >= targetSeconds;
 
+  const linkedChips = [linkedTaskTitle, linkedSubjectName, linkedTopicName].filter(Boolean) as string[];
+
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
-      <h1 className="text-xl font-semibold text-foreground">Çalış</h1>
+    <div className="flex flex-col gap-4 md:gap-5">
+      <PageHeader
+        title="Çalış"
+        description={activeTimer ? undefined : "Bir oturum başlat, süren otomatik kaydedilsin."}
+        actions={
+          !activeTimer && todayTotalMinutes > 0 ? (
+            <span className="rounded-full border border-border bg-surface px-3.5 py-2 text-[13px] font-semibold text-foreground">
+              Bugün {todayTotalMinutes} dk
+            </span>
+          ) : undefined
+        }
+      />
 
       {activeTimer ? (
-        <Card className="flex flex-col items-center gap-4 py-8 text-center">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TimerIcon className="h-4 w-4" aria-hidden />
-            {activeTimer.mode === "countdown" ? "Süreli çalışma" : "Serbest sayaç"}
-            {activeTimer.status === "paused" && " · Duraklatıldı"}
-          </div>
+        /* Aktif oturumda ekran tek odak noktasına indirgenir. */
+        <Card variant="brand" padding="lg" className="relative overflow-hidden">
+          <div
+            className="pointer-events-none absolute -left-20 -bottom-24 h-64 w-64 rounded-full bg-primary-foreground/10 blur-2xl"
+            aria-hidden
+          />
+          <div className="relative mx-auto flex max-w-xl flex-col items-center gap-5 py-4 text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground">
+              <TimerIcon className="h-4 w-4" aria-hidden />
+              {activeTimer.mode === "countdown" ? "Süreli çalışma" : "Serbest sayaç"}
+              {activeTimer.status === "paused" && " · Duraklatıldı"}
+            </span>
 
-          <div className="text-6xl font-bold tabular-nums text-foreground">
-            {formatDuration(activeTimer.mode === "countdown" ? (remainingSeconds ?? 0) : elapsedSeconds)}
-          </div>
-
-          {activeTimer.mode === "countdown" && countdownDone && (
-            <p className="rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">
-              Süre tamamlandı — devam edebilir veya bitirebilirsin
-            </p>
-          )}
-          {activeTimer.mode === "countdown" && countdownDone && (
-            <p className="text-xs text-muted-foreground">Toplam geçen süre: {formatDuration(elapsedSeconds)}</p>
-          )}
-          {activeTimer.mode === "stopwatch" && activeTimer.targetMinutes != null && (
-            <p className="text-xs text-muted-foreground">Hedef: {activeTimer.targetMinutes} dk</p>
-          )}
-
-          {(linkedSubjectName || linkedTopicName || linkedTaskTitle) && (
-            <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted-foreground">
-              {linkedTaskTitle && (
-                <span className="rounded-full border border-border px-2.5 py-1">{linkedTaskTitle}</span>
-              )}
-              {linkedSubjectName && (
-                <span className="rounded-full border border-border px-2.5 py-1">{linkedSubjectName}</span>
-              )}
-              {linkedTopicName && (
-                <span className="rounded-full border border-border px-2.5 py-1">{linkedTopicName}</span>
-              )}
+            <div className="text-6xl font-black tabular-nums leading-none text-primary-foreground md:text-8xl">
+              {formatDuration(activeTimer.mode === "countdown" ? (remainingSeconds ?? 0) : elapsedSeconds)}
             </div>
-          )}
 
-          <div className="flex w-full gap-3 pt-2">
-            {activeTimer.status === "running" ? (
-              <button
-                type="button"
-                onClick={pauseTimer}
-                className={cx(BIG_BUTTON_CLASS, "border border-border bg-surface text-foreground")}
-              >
-                <Pause className="h-5 w-5" aria-hidden />
-                Duraklat
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={resumeTimer}
-                className={cx(BIG_BUTTON_CLASS, "border border-border bg-surface text-foreground")}
-              >
-                <Play className="h-5 w-5" aria-hidden />
-                Devam et
-              </button>
+            {countdownDone && (
+              <div className="flex flex-col items-center gap-1">
+                <p className="rounded-full bg-primary-foreground/15 px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground">
+                  Süre tamamlandı — devam edebilir veya bitirebilirsin
+                </p>
+                <p className="text-xs text-primary-foreground/75">
+                  Toplam geçen süre: {formatDuration(elapsedSeconds)}
+                </p>
+              </div>
             )}
+            {activeTimer.mode === "stopwatch" && activeTimer.targetMinutes != null && (
+              <p className="text-xs text-primary-foreground/75">Hedef: {activeTimer.targetMinutes} dk</p>
+            )}
+
+            {linkedChips.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                {linkedChips.map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex w-full flex-col gap-3 pt-1 sm:flex-row">
+              {activeTimer.status === "running" ? (
+                <button
+                  type="button"
+                  onClick={pauseTimer}
+                  className="press flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary-foreground/15 text-base font-bold text-primary-foreground hover:bg-primary-foreground/25"
+                >
+                  <Pause className="h-5 w-5" aria-hidden />
+                  Duraklat
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resumeTimer}
+                  className="press flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary-foreground/15 text-base font-bold text-primary-foreground hover:bg-primary-foreground/25"
+                >
+                  <Play className="h-5 w-5" aria-hidden />
+                  Devam et
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openFinish}
+                className="press flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-base font-bold text-foreground hover:brightness-105"
+              >
+                <Square className="h-5 w-5" aria-hidden />
+                Bitir
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={openFinish}
-              className={cx(BIG_BUTTON_CLASS, "bg-primary text-primary-foreground")}
+              onClick={cancelTimer}
+              className="text-[13px] font-semibold text-primary-foreground/75 underline-offset-4 hover:underline"
             >
-              <Square className="h-5 w-5" aria-hidden />
-              Bitir
+              Oturumu iptal et
             </button>
           </div>
-          <button type="button" onClick={cancelTimer} className="text-sm font-medium text-danger">
-            Oturumu iptal et
-          </button>
         </Card>
       ) : (
-        <Card className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <span className={LABEL_CLASS}>Çalışma modu</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setSetupForm((f) => ({ ...f, mode: "stopwatch" }))}
-                className={cx(
-                  "flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-                  setupForm.mode === "stopwatch"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-surface-muted",
-                )}
-              >
-                Serbest sayaç
-              </button>
-              <button
-                type="button"
-                onClick={() => setSetupForm((f) => ({ ...f, mode: "countdown" }))}
-                className={cx(
-                  "flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-                  setupForm.mode === "countdown"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-surface-muted",
-                )}
-              >
-                Süreli çalışma
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="timer-minutes" className={LABEL_CLASS}>
-              {setupForm.mode === "countdown" ? "Süre (dk)" : "Hedef süre, isteğe bağlı (dk)"}
-            </label>
-            <input
-              id="timer-minutes"
-              type="number"
-              min={1}
-              className={INPUT_CLASS}
-              value={setupForm.minutes}
-              onChange={(e) => setSetupForm((f) => ({ ...f, minutes: e.target.value }))}
-            />
-          </div>
-
-          {todayTasks.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="timer-task" className={LABEL_CLASS}>
-                İlgili görev (isteğe bağlı)
-              </label>
-              <select
-                id="timer-task"
-                className={INPUT_CLASS}
-                value={setupForm.taskId}
-                onChange={(e) => selectTask(e.target.value)}
-              >
-                <option value="">Görev seçme</option>
-                {todayTasks.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {task.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="timer-subject" className={LABEL_CLASS}>
-              Ders (isteğe bağlı)
-            </label>
-            <select
-              id="timer-subject"
-              className={INPUT_CLASS}
-              value={setupForm.subjectId}
-              onChange={(e) => setSetupForm((f) => ({ ...f, subjectId: e.target.value, topicId: "" }))}
-            >
-              <option value="">Ders seçme</option>
-              {activeSubjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.examType === "OZEL" ? subject.name : `${subject.name} (${subject.examType})`}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {setupTopics.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="timer-topic" className={LABEL_CLASS}>
-                Konu (isteğe bağlı)
-              </label>
-              <select
-                id="timer-topic"
-                className={INPUT_CLASS}
-                value={setupForm.topicId}
-                onChange={(e) => setSetupForm((f) => ({ ...f, topicId: e.target.value }))}
-              >
-                <option value="">Konu seçme</option>
-                {setupTopics.map((topic) => (
-                  <option key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="timer-note" className={LABEL_CLASS}>
-              Oturum notu (isteğe bağlı)
-            </label>
-            <textarea
-              id="timer-note"
-              rows={2}
-              className={INPUT_CLASS}
-              value={setupForm.note}
-              onChange={(e) => setSetupForm((f) => ({ ...f, note: e.target.value }))}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={startTimer}
-            className={cx(BIG_BUTTON_CLASS, "bg-primary text-primary-foreground")}
-          >
-            <Play className="h-5 w-5" aria-hidden />
-            Başlat
-          </button>
-        </Card>
-      )}
-
-      <Card className="flex flex-col gap-3 p-0">
-        <div className="flex items-center justify-between px-4 pt-4">
-          <h2 className="text-sm font-semibold text-foreground">Bugünkü çalışma</h2>
-          <span className="text-sm font-medium text-primary">{todayTotalMinutes} dk</span>
-        </div>
-
-        {todaySessions.length === 0 ? (
-          <div className="px-4 pb-4">
-            <EmptyState
-              icon={TimerIcon}
-              title="Bugün henüz oturum yok"
-              description="Bir sayaç başlatıp bitirdiğinde oturumların burada listelenecek."
-            />
-          </div>
-        ) : (
-          <div className="divide-y divide-border pb-2">
-            {todaySessions.map((session) => {
-              const subject = subjects.find((s) => s.id === session.subjectId);
-              return (
-                <div key={session.id} className="flex items-center justify-between px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {subject ? subject.name : "Serbest çalışma"}
-                    </p>
-                    {session.note && <p className="text-xs text-muted-foreground">{session.note}</p>}
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {formatDuration(session.actualMinutes * 60 + session.actualSeconds)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
-
-      {pendingFinish && activeTimer && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-y-auto rounded-t-3xl bg-surface p-4 md:rounded-3xl md:p-6">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Oturumu tamamla</h2>
-              <button
-                type="button"
-                onClick={() => setPendingFinish(null)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-muted"
-                aria-label="Kapat"
-              >
-                <X className="h-5 w-5" aria-hidden />
-              </button>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card variant="raised" padding="lg" className="flex flex-col gap-4 lg:col-span-2">
+            <div className={FIELD_CLASS}>
+              <span className={LABEL_CLASS}>Çalışma modu</span>
+              <SegmentedControl
+                className="max-w-md"
+                ariaLabel="Çalışma modu"
+                value={setupForm.mode}
+                onChange={(mode) => setSetupForm((f) => ({ ...f, mode }))}
+                options={[
+                  { value: "stopwatch", label: "Serbest sayaç" },
+                  { value: "countdown", label: "Süreli çalışma" },
+                ]}
+              />
             </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="rounded-xl bg-surface-muted px-3 py-2.5 text-sm text-foreground">
-                Toplam süre: <span className="font-semibold">{formatDuration(pendingFinish.elapsedMs / 1000)}</span>
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <div className={FIELD_CLASS}>
+                <label htmlFor="timer-minutes" className={LABEL_CLASS}>
+                  {setupForm.mode === "countdown" ? "Süre (dk)" : "Hedef süre, isteğe bağlı (dk)"}
+                </label>
+                <input
+                  id="timer-minutes"
+                  type="number"
+                  min={1}
+                  className={INPUT_CLASS}
+                  value={setupForm.minutes}
+                  onChange={(e) => setSetupForm((f) => ({ ...f, minutes: e.target.value }))}
+                />
               </div>
 
-              {(linkedSubjectName || linkedTopicName || linkedTaskTitle) && (
-                <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-                  {linkedTaskTitle && (
-                    <span className="rounded-full border border-border px-2.5 py-1">{linkedTaskTitle}</span>
-                  )}
-                  {linkedSubjectName && (
-                    <span className="rounded-full border border-border px-2.5 py-1">{linkedSubjectName}</span>
-                  )}
-                  {linkedTopicName && (
-                    <span className="rounded-full border border-border px-2.5 py-1">{linkedTopicName}</span>
-                  )}
+              {todayTasks.length > 0 && (
+                <div className={FIELD_CLASS}>
+                  <label htmlFor="timer-task" className={LABEL_CLASS}>
+                    İlgili görev (isteğe bağlı)
+                  </label>
+                  <select
+                    id="timer-task"
+                    className={INPUT_CLASS}
+                    value={setupForm.taskId}
+                    onChange={(e) => selectTask(e.target.value)}
+                  >
+                    <option value="">Görev seçme</option>
+                    {todayTasks.map((task) => (
+                      <option key={task.id} value={task.id}>
+                        {task.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="finish-questions" className={LABEL_CLASS}>
-                  Çözülen soru sayısı (isteğe bağlı)
+              <div className={FIELD_CLASS}>
+                <label htmlFor="timer-subject" className={LABEL_CLASS}>
+                  Ders (isteğe bağlı)
                 </label>
-                <input
-                  id="finish-questions"
-                  type="number"
-                  min={0}
+                <select
+                  id="timer-subject"
                   className={INPUT_CLASS}
-                  value={finishQuestions}
-                  onChange={(e) => setFinishQuestions(e.target.value)}
-                />
+                  value={setupForm.subjectId}
+                  onChange={(e) => setSetupForm((f) => ({ ...f, subjectId: e.target.value, topicId: "" }))}
+                >
+                  <option value="">Ders seçme</option>
+                  {activeSubjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.examType === "OZEL" ? subject.name : `${subject.name} (${subject.examType})`}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="finish-note" className={LABEL_CLASS}>
-                  Kısa not (isteğe bağlı)
-                </label>
-                <textarea
-                  id="finish-note"
-                  rows={2}
-                  className={INPUT_CLASS}
-                  value={finishNote}
-                  onChange={(e) => setFinishNote(e.target.value)}
-                />
-              </div>
-
-              <div className="mt-1 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPendingFinish(null)}
-                  className="rounded-full px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={confirmFinish}
-                  className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Kaydediliyor…" : "Onayla ve kaydet"}
-                </button>
-              </div>
+              {setupTopics.length > 0 && (
+                <div className={FIELD_CLASS}>
+                  <label htmlFor="timer-topic" className={LABEL_CLASS}>
+                    Konu (isteğe bağlı)
+                  </label>
+                  <select
+                    id="timer-topic"
+                    className={INPUT_CLASS}
+                    value={setupForm.topicId}
+                    onChange={(e) => setSetupForm((f) => ({ ...f, topicId: e.target.value }))}
+                  >
+                    <option value="">Konu seçme</option>
+                    {setupTopics.map((topic) => (
+                      <option key={topic.id} value={topic.id}>
+                        {topic.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
-          </div>
+
+            <div className={FIELD_CLASS}>
+              <label htmlFor="timer-note" className={LABEL_CLASS}>
+                Oturum notu (isteğe bağlı)
+              </label>
+              <textarea
+                id="timer-note"
+                rows={2}
+                className={INPUT_CLASS}
+                value={setupForm.note}
+                onChange={(e) => setSetupForm((f) => ({ ...f, note: e.target.value }))}
+              />
+            </div>
+
+            <Button size="lg" className="w-full" onClick={startTimer}>
+              <Play className="h-5 w-5" aria-hidden />
+              Başlat
+            </Button>
+          </Card>
+
+          <Card padding="none" className="flex flex-col">
+            <div className="flex items-center justify-between gap-2 px-4 pt-4">
+              <h2 className="text-[15px] font-bold text-foreground">Bugünkü oturumlar</h2>
+              <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[13px] font-bold text-primary">
+                {todayTotalMinutes} dk
+              </span>
+            </div>
+
+            {todaySessions.length === 0 ? (
+              <EmptyState
+                bare
+                icon={TimerIcon}
+                title="Bugün henüz oturum yok"
+                description="Bir sayaç başlatıp bitirdiğinde oturumların burada listelenecek."
+              />
+            ) : (
+              <ul className="flex flex-col divide-y divide-border px-4 pb-3">
+                {todaySessions.map((session) => {
+                  const subject = subjects.find((s) => s.id === session.subjectId);
+                  return (
+                    <li key={session.id} className="flex items-center justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {subject ? subject.name : "Serbest çalışma"}
+                        </p>
+                        {session.note && <p className="truncate text-xs text-muted-foreground">{session.note}</p>}
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
+                        {formatDuration(session.actualMinutes * 60 + session.actualSeconds)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
         </div>
+      )}
+
+      {pendingFinish && activeTimer && (
+        <FormSheet
+          title="Oturumu tamamla"
+          onClose={() => setPendingFinish(null)}
+          onSubmit={confirmFinish}
+          submitting={saving}
+          submitLabel="Onayla ve kaydet"
+        >
+          <div className="rounded-xl bg-surface-muted px-3.5 py-3 text-sm text-foreground">
+            Toplam süre:{" "}
+            <span className="font-bold tabular-nums">{formatDuration(pendingFinish.elapsedMs / 1000)}</span>
+          </div>
+
+          {linkedChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {linkedChips.map((chip) => (
+                <span key={chip} className={CHIP_CLASS}>
+                  {chip}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className={FIELD_CLASS}>
+            <label htmlFor="finish-questions" className={LABEL_CLASS}>
+              Çözülen soru sayısı (isteğe bağlı)
+            </label>
+            <input
+              id="finish-questions"
+              type="number"
+              min={0}
+              className={INPUT_CLASS}
+              value={finishQuestions}
+              onChange={(e) => setFinishQuestions(e.target.value)}
+            />
+          </div>
+
+          <div className={cx(FIELD_CLASS, "pb-1")}>
+            <label htmlFor="finish-note" className={LABEL_CLASS}>
+              Kısa not (isteğe bağlı)
+            </label>
+            <textarea
+              id="finish-note"
+              rows={2}
+              className={INPUT_CLASS}
+              value={finishNote}
+              onChange={(e) => setFinishNote(e.target.value)}
+            />
+          </div>
+        </FormSheet>
       )}
     </div>
   );

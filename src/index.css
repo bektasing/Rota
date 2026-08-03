@@ -2,61 +2,111 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Rota tasarım sistemi
+ * Mor/indigo ana kimlik + mercan ikincil vurgu.
+ * Yüzeyler üç seviyelidir: background < surface < surface-raised.
+ */
 :root {
-  --background: #faf9fc;
+  --background: #f8f6f3;
   --surface: #ffffff;
-  --surface-muted: #f3f1f9;
-  --foreground: #2b2440;
-  --muted-foreground: #6b647f;
-  --primary: #7c6ae8;
+  --surface-raised: #ffffff;
+  --surface-muted: #f1eef7;
+  --surface-subtle: #faf8fd;
+  --foreground: #241f33;
+  --muted-foreground: #6a6383;
+  --primary: #6d5ae6;
+  --primary-strong: #5b46d6;
+  --primary-soft: #ece8ff;
   --primary-foreground: #ffffff;
-  --accent: #f3a6c7;
-  --accent-foreground: #4a1f34;
-  --border: #e7e3f2;
-  --success: #3f9d68;
+  --accent: #f4739a;
+  --accent-soft: #ffe8ef;
+  --accent-foreground: #ffffff;
+  --border: #e8e3f0;
+  --border-strong: #d9d2e8;
+  --success: #2f9d6b;
+  --success-soft: #e2f5ec;
   --success-foreground: #ffffff;
-  --warning: #b9791f;
+  --warning: #b5791a;
+  --warning-soft: #fbeed6;
   --warning-foreground: #ffffff;
-  --danger: #c9564f;
+  --danger: #cf5750;
+  --danger-soft: #fdeceb;
   --danger-foreground: #ffffff;
+
+  --shadow-soft: 0 1px 2px rgb(36 31 51 / 0.04), 0 1px 3px rgb(36 31 51 / 0.03);
+  --shadow-card: 0 2px 4px rgb(36 31 51 / 0.04), 0 8px 20px -12px rgb(36 31 51 / 0.14);
+  --shadow-lifted: 0 8px 16px -8px rgb(36 31 51 / 0.16), 0 20px 40px -24px rgb(36 31 51 / 0.24);
+  --shadow-brand: 0 8px 24px -12px rgb(109 90 230 / 0.55);
 }
 
 .dark {
-  --background: #16131f;
-  --surface: #1f1b2c;
-  --surface-muted: #251f35;
-  --foreground: #ede9f7;
-  --muted-foreground: #a79fc2;
-  --primary: #9d8fff;
-  --primary-foreground: #1a1430;
-  --accent: #f0a8c9;
-  --accent-foreground: #3a1526;
-  --border: #322c46;
-  --success: #6fcb95;
-  --success-foreground: #0f2a1b;
-  --warning: #f0c27a;
-  --warning-foreground: #2b1c00;
-  --danger: #f0918c;
-  --danger-foreground: #360c0a;
+  --background: #101320;
+  --surface: #181c2b;
+  --surface-raised: #1e2334;
+  --surface-muted: #212739;
+  --surface-subtle: #1a1f2f;
+  --foreground: #eceaf6;
+  --muted-foreground: #a09ab8;
+  --primary: #9b8cff;
+  --primary-strong: #ab9dff;
+  --primary-soft: #262244;
+  --primary-foreground: #14102b;
+  --accent: #ff8fae;
+  --accent-soft: #38222f;
+  --accent-foreground: #2c0f1b;
+  --border: #2a3043;
+  --border-strong: #384059;
+  --success: #5fcb98;
+  --success-soft: #14301f;
+  --success-foreground: #062313;
+  --warning: #edc079;
+  --warning-soft: #322613;
+  --warning-foreground: #241902;
+  --danger: #f4908b;
+  --danger-soft: #351b1c;
+  --danger-foreground: #2f0c0a;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-card: 0 2px 4px rgb(0 0 0 / 0.28), 0 10px 24px -14px rgb(0 0 0 / 0.6);
+  --shadow-lifted: 0 10px 20px -10px rgb(0 0 0 / 0.55), 0 24px 48px -28px rgb(0 0 0 / 0.7);
+  --shadow-brand: 0 10px 28px -14px rgb(155 140 255 / 0.5);
 }
 
 @theme {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-surface-muted: var(--surface-muted);
+  --color-surface-subtle: var(--surface-subtle);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-warning-foreground: var(--warning-foreground);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-danger-foreground: var(--danger-foreground);
+
+  --radius-card: 1.25rem;
+  --radius-panel: 1.5rem;
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-lifted: var(--shadow-lifted);
+  --shadow-brand: var(--shadow-brand);
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -79,5 +129,75 @@
 
   #root {
     min-height: 100dvh;
+  }
+
+  /* Klavyeyle gezinirken her etkileşimli öğe belirgin olsun. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  ::selection {
+    background-color: var(--primary-soft);
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  /* Ana vurgu gradyanı — ölçülü kullanılır (hero, birincil buton, aktif durum). */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 45%, var(--accent) 130%);
+  }
+
+  .text-brand-gradient {
+    background-image: linear-gradient(120deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .press {
+    transition:
+      transform 120ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      opacity 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  .animate-rise {
+    animation: rota-rise 220ms ease-out both;
+  }
+}
+
+@keyframes rota-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .press:active {
+    transform: none;
   }
 }

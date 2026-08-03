@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface PlaceholderScreenProps {
   title: string;
@@ -14,13 +15,9 @@ interface PlaceholderScreenProps {
  */
 export function PlaceholderScreen({ title, description, icon }: PlaceholderScreenProps) {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
-      <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-      <EmptyState
-        icon={icon}
-        title="Bu bölüm yakında burada olacak"
-        description={description}
-      />
+    <div className="flex max-w-3xl flex-col gap-4">
+      <PageHeader title={title} />
+      <EmptyState icon={icon} title="Bu bölüm yakında burada olacak" description={description} />
     </div>
   );
 }

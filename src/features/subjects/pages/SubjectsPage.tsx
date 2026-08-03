@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { ChevronRight, Pencil, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { INPUT_CLASS } from "@/components/ui/formStyles";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ROUTES } from "@/constants/routes";
 import type { ExamType, Subject } from "@/models/Subject";
 import { subjectRepository } from "@/repositories/subjectRepository";
@@ -15,14 +18,6 @@ const GROUPS: { examType: ExamType; title: string }[] = [
   { examType: "AYT", title: "AYT Sayısal" },
   { examType: "OZEL", title: "Özel dersler" },
 ];
-
-const INPUT_CLASS =
-  "w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
-
-function subjectLabel(subject: Subject): string {
-  if (subject.examType === "OZEL") return subject.name;
-  return `${subject.name} (${subject.examType})`;
-}
 
 export function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -81,34 +76,34 @@ export function SubjectsPage() {
   }
 
   if (loading) {
-    return <div className="p-4 text-sm text-muted-foreground md:p-6">Yükleniyor…</div>;
+    return <p className="text-sm text-muted-foreground">Yükleniyor…</p>;
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5 p-4 md:p-6">
-      <h1 className="text-xl font-semibold text-foreground">Dersler ve Konular</h1>
+    <div className="flex flex-col gap-5">
+      <PageHeader title="Dersler ve Konular" description="Derslerini düzenle, konularını tek tek takip et." />
 
       {GROUPS.map((group) => {
         const groupSubjects = subjects.filter((s) => s.examType === group.examType);
         if (groupSubjects.length === 0 && group.examType !== "OZEL") return null;
 
         return (
-          <div key={group.examType} className="flex flex-col gap-2">
-            <h2 className="px-1 text-sm font-semibold text-muted-foreground">{group.title}</h2>
-            <Card className="divide-y divide-border p-0">
+          <section key={group.examType} className="flex flex-col gap-2.5">
+            <h2 className="text-sm font-bold text-muted-foreground">{group.title}</h2>
+
+            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
               {groupSubjects.length === 0 && (
-                <p className="px-4 py-3 text-sm text-muted-foreground">Henüz özel ders eklenmedi.</p>
+                <p className="text-[13px] text-muted-foreground">Henüz özel ders eklenmedi.</p>
               )}
+
               {groupSubjects.map((subject) => (
-                <div
+                <Card
                   key={subject.id}
-                  className={cx(
-                    "flex items-center gap-3 px-4 py-3",
-                    !subject.active && "opacity-50",
-                  )}
+                  padding="sm"
+                  className={cx("flex items-center gap-2.5", !subject.active && "opacity-60")}
                 >
                   <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    className="h-8 w-1.5 shrink-0 rounded-full"
                     style={{ backgroundColor: subject.color }}
                     aria-hidden
                   />
@@ -121,34 +116,26 @@ export function SubjectsPage() {
                         onChange={(e) => setEditingName(e.target.value)}
                         autoFocus
                       />
-                      <button
-                        type="button"
-                        onClick={() => saveEdit(subject)}
-                        className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-                      >
+                      <Button size="sm" onClick={() => saveEdit(subject)}>
                         Kaydet
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(null)}
-                        className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground"
-                      >
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
                         Vazgeç
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <>
                       <Link
                         to={`${ROUTES.moreSubjects}/${subject.id}`}
-                        className="flex flex-1 items-center gap-2 text-sm font-medium text-foreground"
+                        className="flex min-w-0 flex-1 items-center gap-1 text-sm font-semibold text-foreground hover:text-primary"
                       >
-                        {subjectLabel(subject)}
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+                        <span className="truncate">{subject.name}</span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                       </Link>
                       <button
                         type="button"
                         onClick={() => startEdit(subject)}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                        className="press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-muted hover:text-foreground"
                         aria-label="Ders adını düzenle"
                       >
                         <Pencil className="h-4 w-4" aria-hidden />
@@ -157,9 +144,9 @@ export function SubjectsPage() {
                         type="button"
                         onClick={() => toggleActive(subject)}
                         className={cx(
-                          "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                          "press shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold",
                           subject.active
-                            ? "border-success text-success"
+                            ? "border-success/40 bg-success-soft text-success"
                             : "border-border text-muted-foreground",
                         )}
                       >
@@ -167,11 +154,11 @@ export function SubjectsPage() {
                       </button>
                     </>
                   )}
-                </div>
+                </Card>
               ))}
 
               {group.examType === "OZEL" && (
-                <div className="flex items-center gap-2 px-4 py-3">
+                <Card variant="muted" padding="sm" className="flex items-center gap-2">
                   <input
                     className={INPUT_CLASS}
                     placeholder="Yeni özel ders adı"
@@ -182,15 +169,15 @@ export function SubjectsPage() {
                     type="button"
                     onClick={addCustomSubject}
                     disabled={newSubjectName.trim().length === 0}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                    className="press bg-brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Özel ders ekle"
                   >
                     <Plus className="h-4 w-4" aria-hidden />
                   </button>
-                </div>
+                </Card>
               )}
-            </Card>
-          </div>
+            </div>
+          </section>
         );
       })}
     </div>

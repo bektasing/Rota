@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { INPUT_CLASS, LABEL_CLASS } from "@/components/ui/formStyles";
 import { WEEK_DAYS } from "@/constants/weekDays";
 import { FIXED_EXAM_DATE, FIXED_USER_NAME } from "@/constants/profile";
 import { ROUTES } from "@/constants/routes";
@@ -12,9 +14,6 @@ import { userProfileRepository } from "@/repositories/userProfileRepository";
 import { ensureDefaultSubjectsSeeded } from "@/services/bootstrapService";
 import { cx } from "@/utils/cx";
 import { generateId } from "@/utils/id";
-
-const INPUT_CLASS =
-  "w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
 
 const LEVEL_OPTIONS: { value: StudyLevel; label: string }[] = [
   { value: "baslangic", label: "Başlangıç" },
@@ -94,20 +93,28 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-4">
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-5 p-4">
       <div className="text-center">
-        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
+        <div className="bg-brand-gradient mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl text-base font-black text-primary-foreground shadow-brand">
           R
         </div>
-        <h1 className="text-lg font-semibold text-foreground">Rota'ya hoş geldin, Nisa</h1>
-        <p className="text-sm text-muted-foreground">Adım {step}/2 — birkaç kısa soru yeterli</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Rota'ya hoş geldin, Nisa</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Birkaç kısa soru yeterli</p>
+        <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden>
+          {[1, 2].map((n) => (
+            <span
+              key={n}
+              className={cx("h-1.5 rounded-full transition-all", step === n ? "w-8 bg-primary" : "w-4 bg-border")}
+            />
+          ))}
+        </div>
       </div>
 
-      <Card className="flex flex-col gap-4">
+      <Card variant="raised" padding="lg" className="flex flex-col gap-4">
         {step === 1 && (
           <>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="dailyTarget" className="text-sm font-medium text-foreground">
+              <label htmlFor="dailyTarget" className={LABEL_CLASS}>
                 Günlük çalışma hedefin (dakika)
               </label>
               <input
@@ -122,7 +129,7 @@ export function OnboardingPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="studyDays" className="text-sm font-medium text-foreground">
+              <label htmlFor="studyDays" className={LABEL_CLASS}>
                 Haftada kaç gün çalışmak istiyorsun?
               </label>
               <select
@@ -139,7 +146,7 @@ export function OnboardingPage() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="restDay" className="text-sm font-medium text-foreground">
+              <label htmlFor="restDay" className={LABEL_CLASS}>
                 Dinlenme günün
               </label>
               <select
@@ -161,7 +168,7 @@ export function OnboardingPage() {
         {step === 2 && (
           <>
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-foreground">TYT seviyen</span>
+              <span className={LABEL_CLASS}>TYT seviyen</span>
               <div className="flex gap-2">
                 {LEVEL_OPTIONS.map((option) => (
                   <button
@@ -169,10 +176,10 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, tytLevel: option.value }))}
                     className={cx(
-                      "flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                      "press min-h-11 flex-1 rounded-xl border px-3 text-sm font-semibold",
                       form.tytLevel === option.value
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-surface-muted",
+                        ? "border-primary bg-primary-soft text-primary"
+                        : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
                     )}
                   >
                     {option.label}
@@ -182,7 +189,7 @@ export function OnboardingPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-foreground">AYT seviyen</span>
+              <span className={LABEL_CLASS}>AYT seviyen</span>
               <div className="flex gap-2">
                 {LEVEL_OPTIONS.map((option) => (
                   <button
@@ -190,10 +197,10 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, aytLevel: option.value }))}
                     className={cx(
-                      "flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                      "press min-h-11 flex-1 rounded-xl border px-3 text-sm font-semibold",
                       form.aytLevel === option.value
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-surface-muted",
+                        ? "border-primary bg-primary-soft text-primary"
+                        : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
                     )}
                   >
                     {option.label}
@@ -205,7 +212,7 @@ export function OnboardingPage() {
             {subjects.length > 0 && (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-foreground">
+                  <span className={LABEL_CLASS}>
                     Güçlü olduğun dersler (isteğe bağlı)
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -220,10 +227,10 @@ export function OnboardingPage() {
                           }))
                         }
                         className={cx(
-                          "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                          "press min-h-9 rounded-full border px-3 text-xs font-semibold",
                           form.strongSubjectIds.includes(subject.id)
-                            ? "border-success bg-success/10 text-success"
-                            : "border-border text-muted-foreground hover:bg-surface-muted",
+                            ? "border-success/40 bg-success-soft text-success"
+                            : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
                         )}
                       >
                         {subject.name}
@@ -233,7 +240,7 @@ export function OnboardingPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-foreground">
+                  <span className={LABEL_CLASS}>
                     Zayıf olduğun dersler (isteğe bağlı)
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -248,10 +255,10 @@ export function OnboardingPage() {
                           }))
                         }
                         className={cx(
-                          "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                          "press min-h-9 rounded-full border px-3 text-xs font-semibold",
                           form.weakSubjectIds.includes(subject.id)
-                            ? "border-danger bg-danger/10 text-danger"
-                            : "border-border text-muted-foreground hover:bg-surface-muted",
+                            ? "border-danger/40 bg-danger-soft text-danger"
+                            : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
                         )}
                       >
                         {subject.name}
@@ -266,37 +273,23 @@ export function OnboardingPage() {
 
         <div className="flex items-center justify-between gap-3 pt-2">
           {step > 1 ? (
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
+            <Button variant="ghost" onClick={() => setStep(1)}>
               Geri
-            </button>
+            </Button>
           ) : (
             <span />
           )}
 
           {step === 1 && (
-            <button
-              type="button"
-              disabled={!targetValid}
-              onClick={() => setStep(2)}
-              className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <Button disabled={!targetValid} onClick={() => setStep(2)}>
               İleri
-            </button>
+            </Button>
           )}
 
           {step === 2 && (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleComplete}
-              className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            <Button disabled={saving} onClick={handleComplete}>
               {saving ? "Kaydediliyor…" : "Kurulumu Tamamla"}
-            </button>
+            </Button>
           )}
         </div>
       </Card>

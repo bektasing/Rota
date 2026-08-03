@@ -1338,8 +1338,34 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 
 ## 21. Güncel Durum
 
-**Mevcut phase:** Sabit Nisa Profili düzeltmesi + Phase 2 — Çalışma Sayacı ve Oturum Kaydı  
+**Mevcut phase:** Arayüz Yenilemesi ve Ayarlar (Phase 3 ile Phase 4 arası ara görev)  
 **Durum:** Tamamlandı  
+**Tamamlanan özellikler (Arayüz Yenilemesi ve Ayarlar):**
+- `/daha-fazla/ayarlar` artık gerçek bir Ayarlar sayfası: günlük çalışma hedefi değiştirilebiliyor (60/120/180/240/300 dk hazır seçenekleri + özel değer), 15–720 dk arası tam sayı doğrulaması, "Kaydet" sonrası kısa "Günlük hedefin güncellendi." geri bildirimi
+- Hedef `UserProfile.dailyStudyTargetMinutes` alanına `userProfileRepository.saveProfile` ile yazılıyor; diğer profil tercihleri (haftalık günler, seviyeler, güçlü/zayıf dersler) korunuyor, component doğrudan IndexedDB'ye erişmiyor; ana sayfadaki hedef/ilerleme yeni değeri gösteriyor (tarayıcıda 180 → 240 doğrulandı)
+- Ayarlar ekranında ayrıca salt okunur profil bilgisi (Nisa, 19 Haziran 2027 + kalan gün) ve açık/koyu tema seçici var; ad ve sınav tarihi düzenlenemiyor. JSON yedekleme/veri sıfırlama bilinçli olarak bağlanmadı (Phase 5)
+- Tasarım sistemi yenilendi (`src/index.css`): üç seviyeli yüzeyler (`background`/`surface`/`surface-raised`/`surface-subtle`), mor-indigo ana vurgu + mercan ikincil vurgu, `*-soft` ton varyantları, `--radius-card`/`--radius-panel`, üç kademeli gölge tokenı, `bg-brand-gradient`/`text-brand-gradient`/`press` yardımcı sınıfları, global `focus-visible` halkası, kısa `rota-rise` animasyonu ve `prefers-reduced-motion` koruması
+- Ortak componentler: `Card` (plain/raised/muted/brand varyantları + padding + interactive), yeni `Button`/`buttonClass`, `PageHeader`, `SegmentedControl`, `MetricCard`, `ProgressRing` (harici kütüphane yok, saf SVG), `FormSheet` (tüm form panelleri için ortak alt sayfa/dialog kabuğu), `formStyles` (ortak `INPUT_CLASS`/`LABEL_CLASS`/`FIELD_CLASS`), daha kompakt `EmptyState`
+- Düzen: `AppShell` artık masaüstünde 1440 px'e kadar geniş içerik alanı kullanıyor (sayfalar kendi `max-w-2xl` sarmalayıcılarını bıraktı), SideNav 228 px'e indirildi ve "Daha Fazla" grubu kompaktlaştırıldı, TopBar artık boş değil (sayfa başlığı, tarih, YKS geri sayımı, tema), BottomNav aktif durumu hap şeklinde vurgulanıyor (5 ana öğe ve safe-area korundu)
+- Dashboard bento düzenine geçti: geniş karşılama alanı (tarih, selamlama, günün mesajı, YKS geri sayımı, dairesel günlük ilerleme) + farklı boyutlu kartlar (görevler 2 kolon, bugünkü çalışma metriği, tekrarlar, son deneme, hızlı başlangıç)
+- Plan, Çalış, Denemeler, Yanlışlar, Tekrarlar, Dersler, Konular, Daha Fazla, Onboarding ve yer tutucu ekranlar ortak tasarım sistemine uyarlandı; liste ekranları masaüstünde 2–3 kolonlu grid kullanıyor, aktif sayaç ekranı tek odak noktasına indirgendi, tamamlanan görevlerin görsel durumu yumuşatıldı (üstü çizili değil, sakin yüzey + yeşil onay)
+- İşlevsel davranış, veri akışları ve repository mantığı değişmedi; yeni bağımlılık eklenmedi, paket sürümleri değişmedi
+
+**Tamamlanan özellikler (Phase 3):**
+- `ExamResult` modeli ve `examResultRepository` eklendi (`examType`: TYT/AYT/BRANS, `sections` ders bazında doğru/yanlış/boş/net, `totalCorrect`/`totalWrong`/`totalBlank`/`totalNet`)
+- `MistakeRecord` modeli ve `mistakeRecordRepository` eklendi (`reason` 7 sabit değer, `status`: open/resolved, isteğe bağlı `examId`/`topicId`/`questionSource`/`solutionNote`)
+- `ReviewItem` modeli ve `reviewItemRepository` eklendi (`stage`: day1/day3/day7/day14/day30, `status`: pending/completed, isteğe bağlı `mistakeId`)
+- IndexedDB `DB_VERSION` 2'den 3'e güvenli şekilde artırıldı; yalnızca `examResults`, `mistakeRecords`, `reviewItems` store'ları eklendi, mevcut store'lara veya verilere dokunulmadı (tarayıcıda canlı doğrulandı)
+- Net hesabı `src/utils/exam.ts` içinde saf fonksiyon olarak (`computeNet`): `doğru - yanlış / 4`, negatif girişler `Math.max(0, …)` ile sıfıra çekiliyor, kullanıcı elle net girmiyor
+- `/daha-fazla/denemeler`: TYT/AYT/Branş deneme ekleme, düzenleme, silme (onaylı); TYT/AYT seçilince yalnızca ilgili aktif dersler, Branş seçilince tek ders formu gösteriliyor; her ders için net canlı hesaplanıyor; liste tarihe göre sıralı, sade kartlar (grafik yok)
+- Deneme kartındaki "Yanlış ekle" aksiyonu, Yanlışlar ekranını ilgili denemeyi önceden seçili şekilde açıyor (`react-router` `location.state` ile, tek seferlik — geri gidildiğinde tekrar açılmıyor)
+- `/daha-fazla/yanlislar`: manuel veya denemeye bağlı yanlış ekleme, düzenleme, silme (onaylı), Açık/Çözüldü durum değiştirme, Tümü/Açık/Çözüldü + ders filtresi
+- Bir yanlış oluşturulduğunda ilk tekrar otomatik oluşuyor (ertesi gün, `day1` aşaması) — `src/services/reviewService.ts` üzerinden, hem Yanlışlar hem Tekrarlar hem Dashboard aynı ortak servisi kullanıyor
+- Yanlış silinirse bağlı bekleyen tekrarlar güvenli şekilde siliniyor, tamamlanmış tekrar geçmişi korunuyor; deneme silinirse bağlı yanlışların `examId`'si temizleniyor (yanlış kaydı silinmiyor)
+- `/daha-fazla/tekrarlar`: Bugün / Gecikmiş / Yaklaşan / Tamamlananlar bölümleri, yerel tarih anahtarına göre hesaplanıyor (UTC kayması yok); tekrar tamamlama (son aşama değilse sıradaki aşama otomatik oluşuyor, aynı aşama iki kez oluşmuyor — `getByMistakeId` ile kontrol ediliyor), bir gün erteleme, manuel tekrar ekleme (tek seferlik, otomatik zincir oluşturmuyor); tarayıcıda canlı doğrulandı: day1 tamamlanınca day3 doğru tarihte (tamamlanma tarihi + 3 gün) otomatik oluştu
+- Ana sayfa artık küçük bir "Tekrarlar" kartı gösteriyor: bugünkü/gecikmiş tekrar sayısı, ilk birkaç tekrar (tamamlama butonuyla), "Tüm tekrarları gör" bağlantısı; ve küçük bir "Son deneme" kartı (ad, tarih, net) — deneme yoksa dürüst boş durum; mevcut günün mesajı/bugünkü görevler/çalışma süresi/günlük hedef bölümleri bozulmadı
+- Yeni sabitler: `EXAM_TYPE_OPTIONS`/`EXAM_TYPE_LABELS` (`src/constants/examTypes.ts`), `MISTAKE_REASON_OPTIONS`/`MISTAKE_STATUS_OPTIONS` (`src/constants/mistakeReasons.ts`), `REVIEW_STAGE_ORDER`/`REVIEW_STAGE_DAYS`/`REVIEW_STAGE_LABELS`/`nextReviewStage` (`src/constants/review.ts`)
+
 **Tamamlanan özellikler (Sabit Nisa Profili):**
 - Sabit kullanıcı: **Nisa**, sabit sınav tarihi: **19 Haziran 2027** (`2027-06-19`) — `src/constants/profile.ts` içinde merkezi olarak tutuluyor (bkz. "Değişmez Teknik Karar: Sabit Kullanıcı (Nisa)")
 - Onboarding artık isim ve sınav tarihi sormuyor; 3 adımdan 2 adıma indirildi (1: günlük hedef/haftalık gün/dinlenme günü, 2: TYT-AYT seviyesi/güçlü-zayıf dersler)
@@ -1400,12 +1426,18 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 - `npm audit`, react-router'ın RSC modundaki bir CSRF açığını raporluyor; Rota tamamen istemci taraflı olduğu ve RSC/server actions kullanmadığı için kapsam dışı, downgrade önerilmedi.
 - Geliştirme sırasında React StrictMode'un efektleri iki kez çalıştırması nedeniyle ders seed işleminde bir yarış durumu (race condition) bulundu ve düzeltildi (bkz. `src/services/bootstrapService.ts` — in-flight promise koruması). Bu tür idempotency kontrolleri ileride eklenecek diğer seed/bootstrap işlemlerinde de göz önünde bulundurulmalı.
 - JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama `StudySession` backup şemasına henüz eklenmedi ve Phase 5'te bağlanacak.
-- Ayarlar ekranı hâlâ placeholder; kullanıcı diğer tercihlerini (günlük hedef, seviyeler vb.) kurulumdan sonra değiştiremiyor (bu görev kapsamı dışında bırakıldı, ileride eklenecek).
+- Ayarlar ekranından şimdilik yalnızca günlük çalışma hedefi ve tema değiştirilebiliyor; haftalık çalışma günleri, dinlenme günü, TYT/AYT seviyesi ve güçlü/zayıf ders tercihleri kurulumdan sonra hâlâ değiştirilemiyor (bilinçli kapsam sınırı).
 - Konu silindiğinde, o konuya bağlı görevlerdeki/oturumlardaki `topicId` temizlenmiyor (kayıt bozulmuyor, sadece referans "yetim" kalabilir); her iki model de konuyu her zaman isteğe bağlı tuttuğu için görünümde soruna yol açmıyor.
 - Native `window.confirm` onay dialogları bazı otomatik tarayıcı test ortamlarında senkron olarak otomatik kapanabiliyor; gerçek tarayıcılarda standart davranış sergiler, bu bir uygulama hatası değildir.
 - Süreli çalışma modunda hedef süre dolduktan sonra sayaç otomatik durmuyor, kullanıcı elle "Bitir" demeli (bilinçli tasarım — otomatik mola/durdurma zinciri kapsam dışı bırakıldı).
+- JSON yedekleme (`RotaBackup`) `ExamResult`/`MistakeRecord`/`ReviewItem`'ı henüz kapsamıyor (StudySession ile aynı bilinen kısıtlama, Phase 5'te bağlanacak).
+- Konu veya ders silindiğinde, ona bağlı yanlış/tekrar kayıtlarındaki `topicId`/`subjectId` temizlenmiyor (referans "yetim" kalabilir; görünümde "Ders silinmiş" düşmesi dışında soruna yol açmıyor, konular zaten kapsam içinde silinemiyor).
+- Tekrar aşama zinciri, aşamayı tamamlanma tarihinden itibaren sabit gün sayısı (1/3/7/14/30) olarak deterministik hesaplıyor; klasik aralıklı tekrar eğrisi gibi konu bazlı öğrenme geçmişine göre uyarlanmıyor (bilinçli sadeleştirme — brief "basit ve deterministik" istiyordu).
+- Manuel eklenen tekrarlar zincire dahil değil (tek seferlik); tamamlandığında sıradaki aşama otomatik oluşmuyor (bilinçli tasarım, brief'te zorunlu tutulmadı).
+- Dashboard bento düzeninde aynı satırdaki kartlar eşit yükseklikte olduğu için, görev listesi boşken "Bugünün görevleri" kartı yanındaki metrik kartı kadar uzun görünebiliyor (görsel, işlevsel değil).
+- Ayarlar sayfası günlük hedefi kendi yerel state'inde tutuyor; ana sayfa değeri kendi `useUserProfile` çağrısıyla yeniden okuyor. Aynı anda iki sekme açıksa diğer sekme yenilenene kadar eski hedefi gösterebilir (tek kullanıcılı yerel uygulamada kabul edilebilir).
 
-**Sıradaki görev:** Phase 3 — Denemeler, Yanlışlar ve Tekrarlar
+**Sıradaki görev:** Phase 4 — Hedefler, Kaynaklar, Notlar ve Temel İstatistikler
 
 Claude her phase sonunda bu bölümü güncellemelidir.
 
