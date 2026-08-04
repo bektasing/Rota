@@ -34,7 +34,7 @@ describe("backupService", () => {
 
     const backup = await createBackup();
 
-    expect(backup.version).toBe(1);
+    expect(backup.version).toBe(2);
     expect(backup.data.subjects).toHaveLength(1);
     expect(backup.data.subjects[0].name).toBe("Matematik");
   });

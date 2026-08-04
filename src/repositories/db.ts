@@ -96,6 +96,33 @@ export function getDb(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+/**
+ * Birden fazla store üzerinde tek bir yazma transaction'ı çalıştırır.
+ * Yedek geri yükleme gibi "ya hep ya hiç" işlemlerinde kullanılır: herhangi bir
+ * adım hata verirse transaction geri alınır ve yarım yazılmış veri kalmaz.
+ */
+export async function runWriteTransaction(
+  storeNames: StoreName[],
+  executor: (getStore: (name: StoreName) => IDBObjectStore) => void,
+): Promise<void> {
+  const db = await getDb();
+
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(storeNames, "readwrite");
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB işlemi başarısız oldu."));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB işlemi geri alındı."));
+
+    try {
+      executor((name) => tx.objectStore(name));
+    } catch (error) {
+      tx.abort();
+      reject(error);
+    }
+  });
+}
+
 export async function runTransaction<T>(
   storeName: StoreName,
   mode: IDBTransactionMode,

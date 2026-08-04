@@ -1338,8 +1338,22 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 
 ## 21. Güncel Durum
 
-**Mevcut phase:** Phase 4 — Hedefler, Kaynaklar, Notlar ve İstatistikler  
-**Durum:** Tamamlandı  
+**Mevcut phase:** Phase 5 — Ayarlar, Tam Yedekleme, Bölüm Keşfi ve Son QA  
+**Durum:** Tamamlandı — proje feature-complete  
+**Tamamlanan özellikler (Phase 5):**
+- **Ayarlar** artık tüm çalışma tercihlerini kapsıyor (`StudyPreferencesCard`): günlük çalışma hedefi (hazır seçenekler + özel değer, 15–720 dk), haftalık çalışma günleri (7 gün açık/kapalı), dinlenme günü, TYT ve AYT seviyesi, güçlü ve zayıf dersler. Tek "Kaydet" ile `userProfileRepository.saveProfile` üzerinden yazılıyor, diğer profil alanları korunuyor, component doğrudan IndexedDB'ye erişmiyor.
+- Ad (**Nisa**) ve sınav tarihi (**19 Haziran 2027**) salt okunur Profil kartında gösteriliyor, düzenlenemiyor. TYT/AYT'deki aynı adlı dersler ders seçiminde "Matematik (TYT)" / "Matematik (AYT)" biçiminde ayrılıyor. Aynı ders hem güçlü hem zayıf seçilemiyor (birine eklenince diğerinden otomatik çıkıyor). En az bir çalışma günü zorunlu.
+- `UserProfile`'a geriye uyumlu iki opsiyonel alan eklendi: `restDay` (dinlenme günü, onboarding de artık kaydediyor) ve `favoriteDepartmentIds` (favori bölümler). Eski profillerde bulunmamaları sorun yaratmıyor.
+- **Backup sürümü 2'ye yükseltildi** ve dosya `app: "Rota"` alanı kazandı. Karar gerekçesi: şema gerçekten büyüdü (4 koleksiyondan 11'e), sürüm numarası bunu yansıtmalı. Okuma tarafı sürüme bakmaksızın geriye uyumlu; sürüm 1 dosyalar sorunsuz kabul ediliyor. Mevcut testte yalnızca tek satırlık sürüm beklentisi güncellendi.
+- **Yedek artık tüm kalıcı koleksiyonları kapsıyor:** UserProfile, Subject, Topic, StudyTask, StudySession, ExamResult, MistakeRecord, ReviewItem, Goal, StudyResource, StudyNote. Aktif sayaç yalnızca geçici bir localStorage durumu olduğu için bilinçli olarak yedeğe dahil edilmiyor.
+- **Export:** Ayarlar'daki "Yedeği indir" butonu şema sürümü, uygulama adı, oluşturulma zamanı ve tüm koleksiyonları içeren JSON üretiyor; dosya adı yerel tarihe göre `rota-yedek-YYYY-AA-GG.json`.
+- **Import:** "Yedeği geri yükle" akışı dosya seç → tam doğrulama → kayıt sayısı özeti (ders, konu, görev, oturum, deneme, yanlış, tekrar, hedef, kaynak, not) + "mevcut verilerin üzerine yazılacak" uyarısı → kullanıcı onayı → yazma → güvenli tam sayfa yenileme. Merge yok, yedekteki tam durum yazılıyor.
+- **Atomik restore:** yeni `runWriteTransaction` yardımcısıyla tüm store'ların temizlenmesi ve yazılması **tek bir IndexedDB transaction'ında** yapılıyor; herhangi bir request hata verirse transaction abort oluyor ve hiçbir veri silinmiş olmuyor. Doğrulama bitmeden tek bir kayıt bile silinmiyor; geçersiz/bozuk JSON uygulamayı çökertmiyor, Türkçe hata mesajıyla reddediliyor.
+- **Veri sıfırlama:** Ayarlar'da ayrı "Tehlikeli bölge" kartı ve merkezi `resetService`. Silinecekler açıkça listeleniyor, kullanıcı `SIFIRLA` yazmadan onay butonu aktifleşmiyor (büyük/küçük harf duyarlı), işlem tek transaction'da yapılıyor. Sonrasında varsayılan 10 TYT + 5 AYT dersi yeniden oluşuyor, aktif sayaç localStorage kaydı temizleniyor, sayfa güvenli şekilde yenileniyor. Nisa profili, sınav tarihi ve çalışma tercihleri korunuyor; silinen derslere işaret ettiği için yalnızca güçlü/zayıf ders ve favori bölüm seçimleri sıfırlanıyor.
+- **Bölüm Keşfi** (`/daha-fazla/bolum-kesfi`) yerel katalogla çalışıyor: `src/constants/departments.ts` içinde 31 sayısal bölüm, 7 kategori (sağlık, bilgisayar ve teknoloji, mühendislik, mimarlık ve tasarım, temel bilimler, eğitim, tarım ve yaşam bilimleri) ve 16 ilgi etiketi. Her bölümde ad, kategori, eğitim süresi, kısa açıklama, öne çıkan dersler/ilgi alanları, olası çalışma alanları, kimlere uygun olabileceğine dair tarafsız maddeler ve etiketler var.
+- Bölüm Keşfi özellikleri: Türkçe duyarlı arama (ad + açıklama), kategori filtresi, etiket filtresi, yalnızca favorileri gösterme, salt okunur detay paneli, favorileme. Taban puan, başarı sırası, kontenjan, maaş ve iş garantisi bilinçli olarak **yok**; detayda güncel veriler için ÖSYM/üniversite kaynaklarına yönlendiren tarafsız bir not var. İnternetten veri çekilmiyor, yeni object store açılmadı.
+- **Favoriler** kalıcı kullanıcı verisi olarak `UserProfile.favoriteDepartmentIds` alanında saklanıyor ve `userProfileRepository` üzerinden yazılıyor; sayfa yenilemesinde korunuyor.
+
 **Tamamlanan özellikler (Phase 4):**
 - `Goal` modeli ve `goalRepository`: 7 hedef türü (çalışma süresi, soru, görev, deneme, net, konu tamamlama, özel), 7 birim (dakika/soru/görev/deneme/net/konu/adet), 3 durum (aktif/tamamlandı/duraklatıldı), isteğe bağlı açıklama ve ders bağlantısı, tarih aralığı
 - `StudyResource` modeli ve `studyResourceRepository`: 8 kaynak türü, 4 durum (kullanılacak/devam ediyor/tamamlandı/bırakıldı), isteğe bağlı toplam ünite, tamamlanan ünite, 1–5 puan, not
@@ -1440,23 +1454,31 @@ Rota V1 ancak aşağıdaki şartlar sağlandığında tamamlanmış kabul edilir
 **Bilinen sorunlar:**
 - `npm audit`, react-router'ın RSC modundaki bir CSRF açığını raporluyor; Rota tamamen istemci taraflı olduğu ve RSC/server actions kullanmadığı için kapsam dışı, downgrade önerilmedi.
 - Geliştirme sırasında React StrictMode'un efektleri iki kez çalıştırması nedeniyle ders seed işleminde bir yarış durumu (race condition) bulundu ve düzeltildi (bkz. `src/services/bootstrapService.ts` — in-flight promise koruması). Bu tür idempotency kontrolleri ileride eklenecek diğer seed/bootstrap işlemlerinde de göz önünde bulundurulmalı.
-- JSON dışa/içe aktarma ve "tüm verileri sıfırlama" arayüzü henüz yok; altyapı hazır ama `StudySession`, `ExamResult`, `MistakeRecord` ve `ReviewItem` backup şemasına henüz eklenmedi (Phase 4'te yalnızca `Goal`/`StudyResource`/`StudyNote` eklendi) ve Phase 5'te bağlanacak.
+- (Phase 5'te çözüldü) JSON dışa/içe aktarma ve veri sıfırlama arayüzü Ayarlar'a bağlandı; backup artık tüm koleksiyonları kapsıyor.
 - Hedefler bu phase'te çalışma kayıtlarından otomatik ilerletilmiyor; ilerleme değeri kullanıcı tarafından manuel güncelleniyor (brief'te zorunlu tutulmadı).
 - İstatistiklerdeki "aktif hedef" ve "tamamlanan hedef" sayıları tarih aralığından bağımsızdır (tüm hedefler sayılır); diğer tüm metrikler seçilen aralığa göre hesaplanır.
 - "Tümü" aralığı seçiliyken günlük çalışma sütun grafiği son 30 günü gösterir (başlıkta belirtilir); tüm geçmişi tek grafikte çizmek mobilde okunaksız olurdu.
 - Ders veya konu silindiğinde kaynak/not/hedef kayıtlarındaki `subjectId`/`topicId` temizlenmiyor (mevcut yetim referans kısıtlamasıyla aynı; kart üzerinde "Ders silinmiş" düşmesi dışında soruna yol açmıyor).
-- Ayarlar ekranından şimdilik yalnızca günlük çalışma hedefi ve tema değiştirilebiliyor; haftalık çalışma günleri, dinlenme günü, TYT/AYT seviyesi ve güçlü/zayıf ders tercihleri kurulumdan sonra hâlâ değiştirilemiyor (bilinçli kapsam sınırı).
+- (Phase 5'te çözüldü) Haftalık çalışma günleri, dinlenme günü, TYT/AYT seviyesi ve güçlü/zayıf ders tercihleri artık Ayarlar'dan değiştirilebiliyor.
+- Yedek geri yükleme ve veri sıfırlama sonrası uygulama tam sayfa yenilemesi yapıyor (state'i tek tek tazelemek yerine); tek kullanıcılı yerel uygulamada bilinçli ve güvenli tercih.
+- Bölüm kataloğu sabit ve elle bakımlıdır (31 bölüm); yeni bölüm eklemek için `src/constants/departments.ts` güncellenmelidir. Bölüm karşılaştırma özelliği bilinçli olarak yapılmadı (brief'te isteğe bağlıydı).
+- Bölüm araması düz metin eşleşmesi yapar; Türkçe karakter normalizasyonu yoktur ("muh" yazınca "Mühendislik" bulunmaz, "mühendis" bulunur).
+- Sıfırlama ve yedek geri yükleme, geliştirme sırasında gerçek veri üzerinde değil ayrı bir origin'de (production preview, port 4173) doğrulandı; gerçek geliştirme verisi silinmedi.
 - Konu silindiğinde, o konuya bağlı görevlerdeki/oturumlardaki `topicId` temizlenmiyor (kayıt bozulmuyor, sadece referans "yetim" kalabilir); her iki model de konuyu her zaman isteğe bağlı tuttuğu için görünümde soruna yol açmıyor.
 - Native `window.confirm` onay dialogları bazı otomatik tarayıcı test ortamlarında senkron olarak otomatik kapanabiliyor; gerçek tarayıcılarda standart davranış sergiler, bu bir uygulama hatası değildir.
 - Süreli çalışma modunda hedef süre dolduktan sonra sayaç otomatik durmuyor, kullanıcı elle "Bitir" demeli (bilinçli tasarım — otomatik mola/durdurma zinciri kapsam dışı bırakıldı).
-- JSON yedekleme (`RotaBackup`) `ExamResult`/`MistakeRecord`/`ReviewItem`'ı henüz kapsamıyor (StudySession ile aynı bilinen kısıtlama, Phase 5'te bağlanacak).
+- (Phase 5'te çözüldü) JSON yedekleme artık `StudySession`/`ExamResult`/`MistakeRecord`/`ReviewItem` dâhil tüm koleksiyonları kapsıyor.
 - Konu veya ders silindiğinde, ona bağlı yanlış/tekrar kayıtlarındaki `topicId`/`subjectId` temizlenmiyor (referans "yetim" kalabilir; görünümde "Ders silinmiş" düşmesi dışında soruna yol açmıyor, konular zaten kapsam içinde silinemiyor).
 - Tekrar aşama zinciri, aşamayı tamamlanma tarihinden itibaren sabit gün sayısı (1/3/7/14/30) olarak deterministik hesaplıyor; klasik aralıklı tekrar eğrisi gibi konu bazlı öğrenme geçmişine göre uyarlanmıyor (bilinçli sadeleştirme — brief "basit ve deterministik" istiyordu).
 - Manuel eklenen tekrarlar zincire dahil değil (tek seferlik); tamamlandığında sıradaki aşama otomatik oluşmuyor (bilinçli tasarım, brief'te zorunlu tutulmadı).
 - Dashboard bento düzeninde aynı satırdaki kartlar eşit yükseklikte olduğu için, görev listesi boşken "Bugünün görevleri" kartı yanındaki metrik kartı kadar uzun görünebiliyor (görsel, işlevsel değil).
 - Ayarlar sayfası günlük hedefi kendi yerel state'inde tutuyor; ana sayfa değeri kendi `useUserProfile` çağrısıyla yeniden okuyor. Aynı anda iki sekme açıksa diğer sekme yenilenene kadar eski hedefi gösterebilir (tek kullanıcılı yerel uygulamada kabul edilebilir).
 
-**Sıradaki görev:** Phase 5 — Ayarlar, Yedekleme, Bölüm Keşfi ve Son QA
+**Son QA sonucu (Phase 5):** `npx tsc -b` hatasız, 29/29 mevcut test geçiyor (yalnızca backup sürüm beklentisi tek satır güncellendi), `npm run build` başarılı ve PWA service worker üretiliyor. Tarayıcı smoke testinde: çalışma tercihleri kaydediliyor ve yenilemede korunuyor; tam yedek 11 koleksiyonu da içeriyor; bozulmuş veri yedekten birebir geri geliyor, kayıt çoğalmıyor; bozuk/yabancı/id'siz JSON dosyaları Türkçe mesajla reddediliyor ve mevcut veriye dokunmuyor; sürüm 1 eski yedekler eksik koleksiyonlar boş sayılarak kabul ediliyor; bölüm arama/kategori/etiket/favori filtreleri ve favori kalıcılığı çalışıyor; 375 px'te 13 ekranda yatay taşma yok; konsolda çalışma zamanı hatası yok.
+
+**Feature-complete durum:** Bölüm 20'deki V1 tamamlanma kriterlerinin tamamı karşılanıyor. Planlanan tüm phase'ler (0, 1A, 1B, 2, 3, 4, 5) ve arayüz yenilemesi tamamlandı.
+
+**Sıradaki görev:** Kullanıcı kabul testi (Nisa'nın gerçek kullanımı) ve Codex ile final audit. Yeni özellik geliştirme planlanmıyor.
 
 Claude her phase sonunda bu bölümü güncellemelidir.
 

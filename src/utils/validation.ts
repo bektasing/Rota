@@ -15,6 +15,7 @@ function hasValidId(item: unknown): item is { id: string } {
 /**
  * Dışa aktarılmış bir Rota yedek dosyasının beklenen şekle uyup uymadığını doğrular.
  * Bozuk veya yabancı bir JSON dosyası uygulamayı çökertmemeli; yalnızca reddedilmelidir.
+ * Doğrulama, veri yazılmaya başlanmadan önce eksiksiz tamamlanır.
  */
 export function validateBackup(raw: unknown): BackupValidationResult {
   if (!isRecord(raw)) {
@@ -33,7 +34,7 @@ export function validateBackup(raw: unknown): BackupValidationResult {
     return { valid: false, error: "Yedek dosyasında veri alanı eksik." };
   }
 
-  const { userProfile, subjects, topics, studyTasks, goals, studyResources, studyNotes } = raw.data;
+  const { userProfile, subjects, topics, studyTasks } = raw.data;
 
   if (userProfile !== null && userProfile !== undefined && !hasValidId(userProfile)) {
     return { valid: false, error: "Kullanıcı profili verisi bozuk." };
@@ -51,47 +52,71 @@ export function validateBackup(raw: unknown): BackupValidationResult {
     return { valid: false, error: "Görev listesi bozuk." };
   }
 
-  // Phase 4 koleksiyonları eski yedeklerde bulunmaz; eksik olmaları dosyayı geçersiz kılmaz.
-  const goalsResult = readOptionalCollection(goals, "Hedef listesi bozuk.");
-  if (!goalsResult.ok) return { valid: false, error: goalsResult.error };
+  // Sonradan eklenen koleksiyonlar eski yedeklerde bulunmaz; eksik olmaları dosyayı geçersiz kılmaz.
+  const optional = readOptionalCollections(raw.data, [
+    ["goals", "Hedef listesi bozuk."],
+    ["studyResources", "Kaynak listesi bozuk."],
+    ["studyNotes", "Not listesi bozuk."],
+    ["studySessions", "Çalışma oturumu listesi bozuk."],
+    ["examResults", "Deneme listesi bozuk."],
+    ["mistakeRecords", "Yanlış listesi bozuk."],
+    ["reviewItems", "Tekrar listesi bozuk."],
+  ]);
 
-  const resourcesResult = readOptionalCollection(studyResources, "Kaynak listesi bozuk.");
-  if (!resourcesResult.ok) return { valid: false, error: resourcesResult.error };
+  if (!optional.ok) {
+    return { valid: false, error: optional.error };
+  }
 
-  const notesResult = readOptionalCollection(studyNotes, "Not listesi bozuk.");
-  if (!notesResult.ok) return { valid: false, error: notesResult.error };
+  const collections = optional.items;
 
   return {
     valid: true,
     data: {
       version: raw.version,
+      app: typeof raw.app === "string" ? raw.app : undefined,
       exportedAt: raw.exportedAt,
       data: {
         userProfile: (userProfile as RotaBackup["data"]["userProfile"]) ?? null,
         subjects: subjects as RotaBackup["data"]["subjects"],
         topics: topics as RotaBackup["data"]["topics"],
         studyTasks: studyTasks as RotaBackup["data"]["studyTasks"],
-        goals: goalsResult.items as RotaBackup["data"]["goals"],
-        studyResources: resourcesResult.items as RotaBackup["data"]["studyResources"],
-        studyNotes: notesResult.items as RotaBackup["data"]["studyNotes"],
+        goals: collections.goals as RotaBackup["data"]["goals"],
+        studyResources: collections.studyResources as RotaBackup["data"]["studyResources"],
+        studyNotes: collections.studyNotes as RotaBackup["data"]["studyNotes"],
+        studySessions: collections.studySessions as RotaBackup["data"]["studySessions"],
+        examResults: collections.examResults as RotaBackup["data"]["examResults"],
+        mistakeRecords: collections.mistakeRecords as RotaBackup["data"]["mistakeRecords"],
+        reviewItems: collections.reviewItems as RotaBackup["data"]["reviewItems"],
       },
     },
   };
 }
 
-type OptionalCollectionResult =
-  | { ok: true; items: { id: string }[] }
+type OptionalCollectionsResult =
+  | { ok: true; items: Record<string, { id: string }[]> }
   | { ok: false; error: string };
 
-/** Yedekte bulunmayan (sonradan eklenmiş) bir koleksiyonu boş dizi kabul eder. */
-function readOptionalCollection(value: unknown, errorMessage: string): OptionalCollectionResult {
-  if (value === undefined || value === null) {
-    return { ok: true, items: [] };
+/** Yedekte bulunmayan (sonradan eklenmiş) koleksiyonları boş dizi kabul eder. */
+function readOptionalCollections(
+  data: Record<string, unknown>,
+  entries: [key: string, errorMessage: string][],
+): OptionalCollectionsResult {
+  const items: Record<string, { id: string }[]> = {};
+
+  for (const [key, errorMessage] of entries) {
+    const value = data[key];
+
+    if (value === undefined || value === null) {
+      items[key] = [];
+      continue;
+    }
+
+    if (!Array.isArray(value) || !value.every(hasValidId)) {
+      return { ok: false, error: errorMessage };
+    }
+
+    items[key] = value;
   }
 
-  if (!Array.isArray(value) || !value.every(hasValidId)) {
-    return { ok: false, error: errorMessage };
-  }
-
-  return { ok: true, items: value };
+  return { ok: true, items };
 }

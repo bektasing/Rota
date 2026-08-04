@@ -24,6 +24,10 @@ export interface UserProfile {
   aytLevel?: StudyLevel | null;
   strongSubjectIds?: string[];
   weakSubjectIds?: string[];
+  /** Phase 5: dinlenme günü; eski profillerde bulunmayabilir. */
+  restDay?: WeekDay | null;
+  /** Phase 5: Bölüm Keşfi'nde favorilenen bölümlerin id'leri; eski profillerde bulunmayabilir. */
+  favoriteDepartmentIds?: string[];
   onboardingCompleted: boolean;
   createdAt: string;
   updatedAt: string;

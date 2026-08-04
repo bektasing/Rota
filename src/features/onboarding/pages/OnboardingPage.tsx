@@ -77,6 +77,7 @@ export function OnboardingPage() {
       examDate: FIXED_EXAM_DATE,
       dailyStudyTargetMinutes: form.dailyStudyTargetMinutes,
       weeklyStudyDays: computeWeeklyStudyDays(form.studyDaysPerWeek, form.restDay),
+      restDay: form.restDay,
       preferredStudyHours: [],
       targetRanking: null,
       tytLevel: form.tytLevel,
