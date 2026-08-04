@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -5,10 +6,20 @@ import { SideNav } from "@/components/layout/SideNav";
 import { TopBar } from "@/components/layout/TopBar";
 import { ROUTES } from "@/constants/routes";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { setupAndroidBackButton } from "@/services/androidBackButton";
+import { setupAndroidStatusBar } from "@/services/androidStatusBar";
+import { ensureTopicCatalogSeeded } from "@/services/topicCatalogService";
 
 export function AppShell() {
   const { profile, loading } = useUserProfile();
   const location = useLocation();
+
+  useEffect(() => {
+    // Uygulama genelinde tek bir noktadan, idempotent şekilde tetiklenir.
+    ensureTopicCatalogSeeded();
+    setupAndroidBackButton();
+    setupAndroidStatusBar();
+  }, []);
 
   if (loading) {
     return (

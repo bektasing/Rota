@@ -18,8 +18,11 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, description, bare, action, className }: EmptyStateProps) {
   const content = (
     <div className="flex flex-col items-center gap-2 py-2 text-center">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-        <Icon className="h-5 w-5" aria-hidden />
+      <div className="relative flex h-11 w-11 items-center justify-center">
+        <div className="absolute inset-0 -z-10 rounded-full bg-accent-soft blur-md" aria-hidden />
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+          <Icon className="h-5 w-5" aria-hidden />
+        </div>
       </div>
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-muted-foreground">{description}</p>

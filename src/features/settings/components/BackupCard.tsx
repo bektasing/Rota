@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Check, DatabaseBackup, Download, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -11,10 +12,13 @@ import {
   summarizeBackup,
   type BackupSummary,
 } from "@/services/backupService";
+import { saveOrShareBackupNative } from "@/services/nativeBackup";
 import { toDateKey } from "@/utils/date";
 import { downloadJson } from "@/utils/download";
 import { readJsonFile } from "@/utils/readJsonFile";
 import { validateBackup } from "@/utils/validation";
+
+const isNative = Capacitor.isNativePlatform();
 
 /** Onay ekranında gösterilen kayıt sayıları. */
 const SUMMARY_ROWS: [key: keyof BackupSummary, label: string][] = [
@@ -58,7 +62,12 @@ export function BackupCard() {
     try {
       const backup = await createBackup();
       // Yerel tarihe göre anlaşılır dosya adı: rota-yedek-2026-08-04.json
-      downloadJson(`rota-yedek-${toDateKey(new Date())}.json`, backup);
+      const filename = `rota-yedek-${toDateKey(new Date())}.json`;
+      if (isNative) {
+        await saveOrShareBackupNative(filename, backup);
+      } else {
+        downloadJson(filename, backup);
+      }
       setExported(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Yedek oluşturulamadı.");
@@ -127,7 +136,7 @@ export function BackupCard() {
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={handleExport} disabled={exporting}>
           <Download className="h-4 w-4" aria-hidden />
-          {exporting ? "Hazırlanıyor…" : "Yedeği indir"}
+          {exporting ? "Hazırlanıyor…" : isNative ? "Yedeği kaydet / paylaş" : "Yedeği indir"}
         </Button>
         <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
           <Upload className="h-4 w-4" aria-hidden />
@@ -150,7 +159,7 @@ export function BackupCard() {
       {exported && (
         <p className="flex items-center gap-1.5 text-[13px] font-semibold text-success">
           <Check className="h-4 w-4" aria-hidden />
-          Yedek dosyan indirildi.
+          {isNative ? "Yedek dosyan hazır, kaydetmek için paylaşım ekranını kullan." : "Yedek dosyan indirildi."}
         </p>
       )}
 

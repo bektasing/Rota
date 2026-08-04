@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { INPUT_CLASS } from "@/components/ui/formStyles";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ROUTES } from "@/constants/routes";
 import type { ExamType, Subject } from "@/models/Subject";
 import { subjectRepository } from "@/repositories/subjectRepository";
@@ -25,6 +26,7 @@ export function SubjectsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [newSubjectName, setNewSubjectName] = useState("");
+  const [activeGroup, setActiveGroup] = useState<ExamType>("TYT");
 
   async function reload() {
     const all = await subjectRepository.getAll();
@@ -83,14 +85,18 @@ export function SubjectsPage() {
     <div className="flex flex-col gap-5">
       <PageHeader title="Dersler ve Konular" description="Derslerini düzenle, konularını tek tek takip et." />
 
-      {GROUPS.map((group) => {
+      <SegmentedControl
+        ariaLabel="Sınav türüne göre hızlı geçiş"
+        value={activeGroup}
+        onChange={setActiveGroup}
+        options={GROUPS.map((group) => ({ value: group.examType, label: group.title }))}
+      />
+
+      {GROUPS.filter((group) => group.examType === activeGroup).map((group) => {
         const groupSubjects = subjects.filter((s) => s.examType === group.examType);
-        if (groupSubjects.length === 0 && group.examType !== "OZEL") return null;
 
         return (
           <section key={group.examType} className="flex flex-col gap-2.5">
-            <h2 className="text-sm font-bold text-muted-foreground">{group.title}</h2>
-
             <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
               {groupSubjects.length === 0 && (
                 <p className="text-[13px] text-muted-foreground">Henüz özel ders eklenmedi.</p>

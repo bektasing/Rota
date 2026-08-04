@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, Library, Plus, Trash2 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CalendarPlus, Library, Plus, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { INPUT_CLASS } from "@/components/ui/formStyles";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { TOPIC_STATUS_OPTIONS } from "@/constants/topicStatus";
 import { ROUTES } from "@/constants/routes";
 import type { Subject } from "@/models/Subject";
 import type { Topic, TopicStatus } from "@/models/Topic";
 import { subjectRepository } from "@/repositories/subjectRepository";
 import { topicRepository } from "@/repositories/topicRepository";
+import { ensureTopicCatalogSeeded } from "@/services/topicCatalogService";
+import { buildQuickPlanSearch } from "@/utils/quickPlan";
 import { cx } from "@/utils/cx";
 import { generateId } from "@/utils/id";
 
@@ -22,17 +25,27 @@ const STATUS_BADGE_CLASS: Record<TopicStatus, string> = {
   review_needed: "border-warning/40 bg-warning-soft text-warning",
 };
 
+type StatusFilter = "all" | TopicStatus;
+
+const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Tümü" },
+  ...TOPIC_STATUS_OPTIONS.map((option) => ({ value: option.value as StatusFilter, label: option.label })),
+];
+
 export function TopicsPage() {
   const { subjectId } = useParams<{ subjectId: string }>();
+  const navigate = useNavigate();
   const [subject, setSubject] = useState<Subject | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTopicName, setNewTopicName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   async function reload() {
     if (!subjectId) return;
+    await ensureTopicCatalogSeeded();
     const [found, subjectTopics] = await Promise.all([
       subjectRepository.getById(subjectId),
       topicRepository.getBySubjectId(subjectId),
@@ -42,9 +55,23 @@ export function TopicsPage() {
   }
 
   useEffect(() => {
+    setLoading(true);
     reload().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId]);
+
+  const summary = useMemo(
+    () => ({
+      total: topics.length,
+      completed: topics.filter((t) => t.status === "completed").length,
+      inProgress: topics.filter((t) => t.status === "in_progress").length,
+      reviewNeeded: topics.filter((t) => t.status === "review_needed").length,
+    }),
+    [topics],
+  );
+
+  const filteredTopics =
+    statusFilter === "all" ? topics : topics.filter((topic) => topic.status === statusFilter);
 
   async function addTopic() {
     const trimmed = newTopicName.trim();
@@ -99,6 +126,12 @@ export function TopicsPage() {
     await reload();
   }
 
+  function planTopic(topic: Topic) {
+    if (!subject) return;
+    const search = buildQuickPlanSearch({ examType: subject.examType, subjectId: subject.id, topicId: topic.id });
+    navigate(`${ROUTES.planner}?${search}`);
+  }
+
   if (loading) {
     return <p className="text-sm text-muted-foreground">Yükleniyor…</p>;
   }
@@ -132,6 +165,27 @@ export function TopicsPage() {
         <span className="text-[13px] text-muted-foreground">{topics.length} konu</span>
       </div>
 
+      {topics.length > 0 && (
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-xl bg-surface-muted px-3 py-2">
+            <p className="text-lg font-bold tabular-nums text-foreground">{summary.total}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Toplam</p>
+          </div>
+          <div className="rounded-xl bg-success-soft px-3 py-2">
+            <p className="text-lg font-bold tabular-nums text-success">{summary.completed}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Tamamlanan</p>
+          </div>
+          <div className="rounded-xl bg-primary-soft px-3 py-2">
+            <p className="text-lg font-bold tabular-nums text-primary">{summary.inProgress}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Çalışılıyor</p>
+          </div>
+          <div className="rounded-xl bg-warning-soft px-3 py-2">
+            <p className="text-lg font-bold tabular-nums text-warning">{summary.reviewNeeded}</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Tekrar</p>
+          </div>
+        </div>
+      )}
+
       <Card padding="sm" className="flex max-w-xl items-center gap-2">
         <input
           className={INPUT_CLASS}
@@ -157,66 +211,92 @@ export function TopicsPage() {
           description="Bu ders için konularını yukarıdan ekleyebilirsin."
         />
       ) : (
-        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-          {topics.map((topic) => (
-            <Card key={topic.id} padding="sm" className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                {editingId === topic.id ? (
-                  <div className="flex flex-1 items-center gap-2">
-                    <input
-                      className={INPUT_CLASS}
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      autoFocus
-                    />
-                    <Button size="sm" onClick={() => saveEdit(topic)}>
-                      Kaydet
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                      Vazgeç
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(topic)}
-                      className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-foreground hover:text-primary"
-                    >
-                      {topic.name}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteTopic(topic)}
-                      className="press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                      aria-label="Konuyu sil"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                    </button>
-                  </>
-                )}
-              </div>
+        <>
+          <SegmentedControl
+            ariaLabel="Konu durumu filtresi"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={FILTER_OPTIONS}
+          />
 
-              <div className="flex flex-wrap gap-1.5">
-                {TOPIC_STATUS_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => changeStatus(topic, option.value)}
-                    className={cx(
-                      "press rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-                      topic.status === option.value
-                        ? STATUS_BADGE_CLASS[option.value]
-                        : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
+          {filteredTopics.length === 0 ? (
+            <EmptyState
+              icon={Library}
+              title="Bu filtrede konu yok"
+              description="Farklı bir durum seçerek diğer konularını görebilirsin."
+            />
+          ) : (
+            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredTopics.map((topic) => (
+                <Card key={topic.id} padding="sm" className="flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2">
+                    {editingId === topic.id ? (
+                      <div className="flex flex-1 items-center gap-2">
+                        <input
+                          className={INPUT_CLASS}
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          autoFocus
+                        />
+                        <Button size="sm" onClick={() => saveEdit(topic)}>
+                          Kaydet
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                          Vazgeç
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(topic)}
+                          className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-foreground hover:text-primary"
+                        >
+                          {topic.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => planTopic(topic)}
+                          className="press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-primary-soft hover:text-primary"
+                          aria-label={`${topic.name} için plan oluştur`}
+                          title="Planla"
+                        >
+                          <CalendarPlus className="h-4 w-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteTopic(topic)}
+                          className="press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                          aria-label="Konuyu sil"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
+                      </>
                     )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </Card>
-          ))}
-        </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {TOPIC_STATUS_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => changeStatus(topic, option.value)}
+                        className={cx(
+                          "press rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                          topic.status === option.value
+                            ? STATUS_BADGE_CLASS[option.value]
+                            : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

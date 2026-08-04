@@ -131,6 +131,10 @@ export function DashboardPage() {
           className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-primary-foreground/10 blur-2xl"
           aria-hidden
         />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-accent/20 blur-2xl"
+          aria-hidden
+        />
         <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8">
           <div className="min-w-0">
             <p className="text-[13px] font-medium capitalize text-primary-foreground/75">

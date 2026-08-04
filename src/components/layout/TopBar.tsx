@@ -15,7 +15,7 @@ export function TopBar() {
   const remainingDays = profile?.examDate ? daysUntilExam(profile.examDate, today) : null;
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-border bg-surface/85 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-3 px-4 py-2.5 md:px-8 md:py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black text-primary-foreground md:hidden">

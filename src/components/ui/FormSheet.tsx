@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { pushBackHandler } from "@/utils/nativeBackStack";
 
 interface FormSheetProps {
   title: string;
@@ -29,6 +31,8 @@ export function FormSheet({
   onSubmit,
   error,
 }: FormSheetProps) {
+  useEffect(() => pushBackHandler(onClose), [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-[2px] md:items-center md:p-6"

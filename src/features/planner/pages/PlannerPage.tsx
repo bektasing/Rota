@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -8,17 +8,22 @@ import {
   Copy,
   MoreVertical,
   Pencil,
-  Plus,
+  Sparkles,
   SkipForward,
   Trash2,
+  Zap,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { QuickChoiceChip } from "@/components/ui/QuickChoiceChip";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { QUICK_TEMPLATES, type QuickTemplate } from "@/constants/quickPlan";
 import { TASK_PRIORITY_LABELS, TASK_TYPE_LABELS, priorityWeight } from "@/constants/taskTypes";
+import { QuickPlanPanel } from "@/features/planner/components/QuickPlanPanel";
 import { TaskFormPanel } from "@/features/planner/components/TaskFormPanel";
 import type { Subject } from "@/models/Subject";
 import type { StudyTask, TaskPriority } from "@/models/StudyTask";
@@ -27,6 +32,7 @@ import { ensureDefaultSubjectsSeeded } from "@/services/bootstrapService";
 import { cx } from "@/utils/cx";
 import { addDays, formatFriendlyDate, formatShortDayLabel, fromDateKey, startOfWeek, toDateKey } from "@/utils/date";
 import { generateId } from "@/utils/id";
+import { parseQuickPlanDeepLink, type QuickPlanDeepLink } from "@/utils/quickPlan";
 
 type ViewMode = "day" | "week";
 
@@ -63,11 +69,42 @@ export function PlannerPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<StudyTask | null>(null);
+  const [quickPlanOpen, setQuickPlanOpen] = useState(false);
+  const [quickPlanDeepLink, setQuickPlanDeepLink] = useState<QuickPlanDeepLink | null>(null);
+  const [quickPlanTemplate, setQuickPlanTemplate] = useState<QuickTemplate | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const successTimeoutRef = useRef<number | null>(null);
 
   const subjectsById = new Map(subjects.map((s) => [s.id, s]));
+  const deepLinkHandledRef = useRef(false);
 
   useEffect(() => {
     ensureDefaultSubjectsSeeded().then(setSubjects);
+  }, []);
+
+  // Konu kartındaki "Planla" aksiyonundan gelen tek seferlik derin bağlantı: paneli
+  // otomatik açar ve sorgu parametrelerini temizler ki yenilemede tekrar açılmasın.
+  // Dersler henüz yüklenmeden panel açılırsa ders/konu ön-seçimi kaybolacağı için,
+  // dersler state'e ulaşana kadar bekler.
+  useEffect(() => {
+    if (deepLinkHandledRef.current || subjects.length === 0) return;
+    deepLinkHandledRef.current = true;
+
+    const deepLink = parseQuickPlanDeepLink(searchParams);
+    if (deepLink) {
+      setQuickPlanTemplate(null);
+      setQuickPlanDeepLink(deepLink);
+      setQuickPlanOpen(true);
+      setSearchParams(new URLSearchParams(), { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjects]);
+
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) window.clearTimeout(successTimeoutRef.current);
+    };
   }, []);
 
   async function reloadDay() {
@@ -96,6 +133,12 @@ export function PlannerPage() {
 
   async function reloadAll() {
     await Promise.all([reloadDay(), reloadWeek()]);
+  }
+
+  function flashSuccess(message: string) {
+    setSuccessMessage(message);
+    if (successTimeoutRef.current) window.clearTimeout(successTimeoutRef.current);
+    successTimeoutRef.current = window.setTimeout(() => setSuccessMessage(null), 3200);
   }
 
   async function toggleComplete(task: StudyTask) {
@@ -145,9 +188,15 @@ export function PlannerPage() {
     setOpenMenuId(null);
   }
 
-  function openCreate() {
+  function openDetailedCreate() {
     setEditingTask(null);
     setFormOpen(true);
+  }
+
+  function openQuickPlan(template: QuickTemplate | null = null) {
+    setQuickPlanDeepLink(null);
+    setQuickPlanTemplate(template);
+    setQuickPlanOpen(true);
   }
 
   async function handleSave(task: StudyTask) {
@@ -161,8 +210,19 @@ export function PlannerPage() {
     await reloadAll();
   }
 
+  async function handleQuickSave(task: StudyTask) {
+    await studyTaskRepository.add(task);
+    setQuickPlanOpen(false);
+    setQuickPlanDeepLink(null);
+    setQuickPlanTemplate(null);
+    await reloadAll();
+    flashSuccess("Harika, bugünkü planına bir çalışma daha eklendi.");
+  }
+
   const isToday = toDateKey(selectedDate) === toDateKey(new Date());
   const completedToday = dayTasks.filter((t) => t.completed).length;
+  const plannedMinutesToday = dayTasks.reduce((sum, t) => sum + (t.estimatedMinutes ?? 0), 0);
+  const plannedQuestionsToday = dayTasks.reduce((sum, t) => sum + (t.questionTarget ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-4 md:gap-5">
@@ -170,12 +230,39 @@ export function PlannerPage() {
         title="Planlayıcı"
         description="Gününü küçük, uygulanabilir görevlere böl."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Görev ekle
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={openDetailedCreate}>
+              <Pencil className="h-4 w-4" aria-hidden />
+              Ayrıntılı
+            </Button>
+            <Button onClick={() => openQuickPlan()}>
+              <Zap className="h-4 w-4" aria-hidden />
+              Hızlı Planla
+            </Button>
+          </div>
         }
       />
+
+      {successMessage && (
+        <Card variant="brand" padding="sm" className="animate-rise flex items-center gap-2.5">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary-foreground" aria-hidden />
+          <p className="text-[13px] font-semibold text-primary-foreground">{successMessage}</p>
+        </Card>
+      )}
+
+      <Card padding="sm" className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-semibold text-foreground">Hızlı şablonlar</p>
+          <p className="text-xs text-muted-foreground">Küçük adımlar da ilerlemedir.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_TEMPLATES.map((template) => (
+            <QuickChoiceChip key={template.label} onClick={() => openQuickPlan(template)}>
+              {template.label}
+            </QuickChoiceChip>
+          ))}
+        </div>
+      </Card>
 
       <Card padding="sm" className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
@@ -229,13 +316,29 @@ export function PlannerPage() {
           <EmptyState
             icon={CalendarDays}
             title="Bu gün için henüz görev yok"
-            description="Yukarıdaki 'Görev ekle' butonuyla bu güne bir görev ekleyebilirsin."
+            description="Yukarıdaki 'Hızlı Planla' butonuyla bu güne birkaç dokunuşla görev ekleyebilirsin."
           />
         ) : (
           <div className="flex flex-col gap-3">
-            <p className="text-[13px] font-medium text-muted-foreground">
-              {dayTasks.length} görev · {completedToday} tamamlandı
-            </p>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="rounded-xl bg-surface-muted px-3 py-2">
+                <p className="text-lg font-bold tabular-nums text-foreground">{dayTasks.length}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Görev</p>
+              </div>
+              <div className="rounded-xl bg-success-soft px-3 py-2">
+                <p className="text-lg font-bold tabular-nums text-success">{completedToday}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Tamamlandı</p>
+              </div>
+              <div className="rounded-xl bg-primary-soft px-3 py-2">
+                <p className="text-lg font-bold tabular-nums text-primary">{plannedMinutesToday}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Dakika</p>
+              </div>
+              <div className="rounded-xl bg-accent-soft px-3 py-2">
+                <p className="text-lg font-bold tabular-nums text-accent">{plannedQuestionsToday}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Soru</p>
+              </div>
+            </div>
+
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {dayTasks.map((task) => {
                 const subject = task.subjectId ? subjectsById.get(task.subjectId) : undefined;
@@ -277,6 +380,9 @@ export function PlannerPage() {
                               aria-hidden
                             />
                             {subject.name}
+                            {subject.examType !== "OZEL" && (
+                              <span className="text-muted-foreground">· {subject.examType}</span>
+                            )}
                           </span>
                         )}
                         <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
@@ -292,13 +398,11 @@ export function PlannerPage() {
                         </span>
                       </div>
 
-                      {(task.startTime || task.estimatedMinutes != null) && (
-                        <p className="mt-1.5 text-xs text-muted-foreground">
-                          {task.startTime && <span>{task.startTime}</span>}
-                          {task.startTime && task.estimatedMinutes != null && <span> · </span>}
-                          {task.estimatedMinutes != null && <span>{task.estimatedMinutes} dk</span>}
-                        </p>
-                      )}
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        <span>{task.startTime ?? "Gün içinde"}</span>
+                        {task.estimatedMinutes != null && <span> · {task.estimatedMinutes} dk</span>}
+                        {task.questionTarget != null && <span> · {task.questionTarget} soru</span>}
+                      </p>
                     </div>
 
                     <div className="relative shrink-0">
@@ -414,6 +518,21 @@ export function PlannerPage() {
             setEditingTask(null);
           }}
           onSave={handleSave}
+        />
+      )}
+
+      {quickPlanOpen && (
+        <QuickPlanPanel
+          subjects={subjects}
+          defaultDate={toDateKey(selectedDate)}
+          deepLink={quickPlanDeepLink}
+          initialTemplate={quickPlanTemplate}
+          onClose={() => {
+            setQuickPlanOpen(false);
+            setQuickPlanDeepLink(null);
+            setQuickPlanTemplate(null);
+          }}
+          onSave={handleQuickSave}
         />
       )}
     </div>
