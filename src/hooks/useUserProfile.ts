@@ -15,12 +15,16 @@ export function useUserProfile(): UseUserProfileResult {
   useEffect(() => {
     let cancelled = false;
 
-    userProfileRepository.getProfile().then((found) => {
-      if (!cancelled) {
-        setProfile(found);
-        setLoading(false);
-      }
-    });
+    userProfileRepository
+      .getProfile()
+      .catch(() => undefined)
+      .then((found) => {
+        // Hata durumunda da yükleme biter; aksi hâlde ekran "Yükleniyor…" da takılırdı.
+        if (!cancelled) {
+          setProfile(found);
+          setLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;

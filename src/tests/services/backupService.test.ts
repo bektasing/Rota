@@ -82,6 +82,37 @@ describe("backupService", () => {
     expect(subjects[0].name).toBe("Yeni Ders");
   });
 
+  it("profil içermeyen bir yedek mevcut profili silmez", async () => {
+    const now = new Date().toISOString();
+    await userProfileRepository.saveProfile({
+      id: "p1",
+      name: "Nisa",
+      examDate: "2027-06-19",
+      dailyStudyTargetMinutes: 240,
+      weeklyStudyDays: ["monday"],
+      preferredStudyHours: [],
+      targetRanking: null,
+      tytLevel: "orta",
+      aytLevel: "orta",
+      strongSubjectIds: [],
+      weakSubjectIds: [],
+      onboardingCompleted: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const result = await restoreBackup({
+      version: 1,
+      exportedAt: now,
+      data: { userProfile: null, subjects: [], topics: [], studyTasks: [] },
+    });
+
+    expect(result.success).toBe(true);
+
+    const profile = await userProfileRepository.getProfile();
+    expect(profile?.dailyStudyTargetMinutes).toBe(240);
+  });
+
   it("bozuk bir yedeği reddeder ve mevcut veriye dokunmaz", async () => {
     await subjectRepository.add({
       id: "korunan",

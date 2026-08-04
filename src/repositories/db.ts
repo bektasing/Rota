@@ -134,8 +134,17 @@ export async function runTransaction<T>(
     const tx = db.transaction(storeName, mode);
     const store = tx.objectStore(storeName);
     const request = executor(store);
+    let result!: T;
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      result = request.result;
+    };
     request.onerror = () => reject(request.error ?? new Error("IndexedDB işlemi başarısız oldu."));
+
+    // Yazma işlemi ancak transaction commit olduğunda kalıcıdır; isteğin başarılı
+    // olması yetmez (transaction sonradan abort olursa yazma geri alınır).
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB işlemi başarısız oldu."));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB işlemi geri alındı."));
   });
 }

@@ -125,7 +125,13 @@ export interface RestoreResult {
  */
 export async function applyBackup(backup: RotaBackup): Promise<RestoreResult> {
   const { data } = backup;
-  const stores: StoreName[] = [...COLLECTION_STORES.map(([, store]) => store), STORE_NAMES.userProfile];
+  const profile = data.userProfile;
+  // Profil içermeyen (örn. eski) bir yedek mevcut profili silmez; yalnızca çalışma
+  // verileri değiştirilir. Aksi hâlde geri yükleme sonrası kurulum ekranına düşülürdü.
+  const stores: StoreName[] = [...COLLECTION_STORES.map(([, store]) => store)];
+  if (profile) {
+    stores.push(STORE_NAMES.userProfile);
+  }
 
   try {
     await runWriteTransaction(stores, (getStore) => {
@@ -140,8 +146,8 @@ export async function applyBackup(backup: RotaBackup): Promise<RestoreResult> {
         }
       }
 
-      if (data.userProfile) {
-        getStore(STORE_NAMES.userProfile).put(data.userProfile);
+      if (profile) {
+        getStore(STORE_NAMES.userProfile).put(profile);
       }
     });
   } catch (error) {

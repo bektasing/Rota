@@ -20,11 +20,39 @@ export interface ActiveTimerState {
   note: string;
 }
 
+/**
+ * localStorage'daki aktif sayaç kaydının kullanılabilir olduğunu doğrular.
+ * Bozuk bir kayıt (elle düzenleme, yarım yazma) NaN süreli bir oturumun
+ * kaydedilmesine yol açabileceği için kabul edilmez.
+ */
+function isValidTimerState(value: unknown): value is ActiveTimerState {
+  if (typeof value !== "object" || value === null) return false;
+  const state = value as Partial<ActiveTimerState>;
+
+  return (
+    (state.mode === "stopwatch" || state.mode === "countdown") &&
+    (state.status === "running" || state.status === "paused") &&
+    typeof state.startedAt === "string" &&
+    !Number.isNaN(new Date(state.startedAt).getTime()) &&
+    typeof state.accumulatedPausedMs === "number" &&
+    Number.isFinite(state.accumulatedPausedMs) &&
+    (state.pausedSinceAt === null ||
+      (typeof state.pausedSinceAt === "string" && !Number.isNaN(new Date(state.pausedSinceAt).getTime())))
+  );
+}
+
 export function loadActiveTimer(): ActiveTimerState | null {
   try {
     const raw = localStorage.getItem(ACTIVE_TIMER_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as ActiveTimerState;
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidTimerState(parsed)) {
+      clearActiveTimer();
+      return null;
+    }
+
+    return parsed;
   } catch {
     return null;
   }
